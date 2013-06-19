@@ -5,6 +5,8 @@ void size(int* dims, int sbin, int* cells, int* out);
 
 void process(int* dims,
              double* im,
+             double* hist,
+             double* norm,
              int sbin,
              int* cells,
              int* out,

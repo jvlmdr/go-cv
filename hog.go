@@ -28,11 +28,17 @@ func HOG(im RealVectorImage, binSize int) RealVectorImage {
 	var out [3]C.int
 	C.size(&dims[0], C.int(binSize), &cells[0], &out[0])
 
+	numCells := cells[0] * cells[1]
+	hist := make([]C.double, 18*numCells)
+	norm := make([]C.double, numCells)
+
 	// Compute HOG image.
 	hog := NewRealVectorImage(int(out[1]), int(out[0]), int(out[2]))
 	C.process(
 		&dims[0],
 		(*C.double)(unsafe.Pointer(&im.Pixels[0])),
+		(*C.double)(unsafe.Pointer(&hist[0])),
+		(*C.double)(unsafe.Pointer(&norm[0])),
 		C.int(binSize),
 		&cells[0],
 		&out[0],

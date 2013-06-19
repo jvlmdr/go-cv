@@ -61,6 +61,8 @@ void size(int* dims, int sbin, int* cells, int* out) {
 // returns HOG features
 void process(int* dims,
              double* im,
+             double* hist,
+             double* norm,
              int sbin,
              int* cells,
              int* out,
@@ -69,8 +71,8 @@ void process(int* dims,
   int y;
   int o;
 
-  double *hist = (double *)malloc(cells[0]*cells[1]*18*sizeof(double));
-  double *norm = (double *)malloc(cells[0]*cells[1]*sizeof(double));
+  //double *hist = (double *)malloc(cells[0]*cells[1]*18*sizeof(double));
+  //double *norm = (double *)malloc(cells[0]*cells[1]*sizeof(double));
 
   int visible[2];
   visible[0] = cells[0]*sbin;
@@ -240,6 +242,6 @@ void process(int* dims,
     }
   }
 
-  free(hist);
-  free(norm);
+  //free(hist);
+  //free(norm);
 }
