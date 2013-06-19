@@ -95,7 +95,7 @@ func (f RealVectorImage) Copy() RealVectorImage {
 	return g
 }
 
-func (src RealVectorImage) SelectChannels(channels []int) RealVectorImage {
+func (src RealVectorImage) CopyChannels(channels []int) RealVectorImage {
 	dst := NewRealVectorImage(src.Width, src.Height, len(channels))
 	for i := 0; i < src.Width; i++ {
 		for j := 0; j < src.Height; j++ {
