@@ -2,7 +2,7 @@ package cv
 
 import (
 	"code.google.com/p/draw2d/draw2d"
-	"github.com/jackvalmadre/vector"
+	"github.com/jackvalmadre/go-vec"
 	"image"
 	"image/color"
 	"math"

@@ -1,7 +1,7 @@
 package cv
 
 import (
-	"github.com/jackvalmadre/vector"
+	"github.com/jackvalmadre/go-vec"
 	"image"
 	"image/color"
 )
