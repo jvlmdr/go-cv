@@ -4,7 +4,6 @@ import (
 	"github.com/jackvalmadre/vector"
 	"image"
 	"image/color"
-	"math"
 )
 
 // Describes an image with real scalar values.
@@ -23,8 +22,8 @@ func (f RealImage) Empty() bool {
 	return len(f.Pixels) == 0
 }
 
-func (f RealImage) Size() (int, int) {
-	return f.Width, f.Height
+func (f RealImage) Size() image.Point {
+	return image.Pt(f.Width, f.Height)
 }
 
 func (f RealImage) At(x, y int) float64 {
@@ -75,6 +74,10 @@ func (f RealVectorImage) Empty() bool {
 	return len(f.Pixels) == 0
 }
 
+func (f RealVectorImage) ImageSize() image.Point {
+	return image.Pt(f.Width, f.Height)
+}
+
 func (f RealVectorImage) At(x, y, d int) float64 {
 	i := f.Channels * f.Height
 	j := f.Channels
@@ -105,20 +108,6 @@ func (src RealVectorImage) CopyChannels(channels []int) RealVectorImage {
 		}
 	}
 	return dst
-}
-
-func (f RealVectorImage) Range() (min, max float64) {
-	max = math.Inf(-1)
-	min = math.Inf(1)
-	for i := 0; i < f.Width; i++ {
-		for j := 0; j < f.Height; j++ {
-			for k := 0; k < f.Channels; k++ {
-				max = math.Max(max, f.At(i, j, k))
-				min = math.Max(min, f.At(i, j, k))
-			}
-		}
-	}
-	return min, max
 }
 
 func (f RealVectorImage) NormalizePositive() {
@@ -154,8 +143,8 @@ type SliceOfRealVectorImage struct {
 	Channel int
 }
 
-func (slice SliceOfRealVectorImage) Size() (int, int) {
-	return slice.Image.Width, slice.Image.Height
+func (slice SliceOfRealVectorImage) Size() image.Point {
+	return image.Pt(slice.Image.Width, slice.Image.Height)
 }
 
 func (slice SliceOfRealVectorImage) At(x, y int) float64 {

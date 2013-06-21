@@ -2,6 +2,7 @@ package cv
 
 import (
 	"code.google.com/p/draw2d/draw2d"
+	"github.com/jackvalmadre/vector"
 	"image"
 	"image/color"
 	"math"
@@ -18,7 +19,8 @@ func HOGImage(hog RealVectorImage, cellSize int) image.Image {
 		}
 	}
 
-	_, max := hog.Range()
+	// Maximum value in vectorized image.
+	max := vec.Max(RealVectorImageAsVector{hog})
 
 	gc := draw2d.NewGraphicContext(pic)
 	gc.SetLineWidth(1)
@@ -44,8 +46,8 @@ func SignedHOGImage(hog RealVectorImage, cellSize int) image.Image {
 		}
 	}
 
-	min, max := hog.Range()
-	absMax := math.Max(max, -min)
+	// Maximum absolute value in vectorized image.
+	max := vec.InfNorm(RealVectorImageAsVector{hog})
 
 	gc := draw2d.NewGraphicContext(pic)
 	gc.SetLineWidth(2)
@@ -53,7 +55,7 @@ func SignedHOGImage(hog RealVectorImage, cellSize int) image.Image {
 	// Draw cells.
 	for x := 0; x < hog.Width; x++ {
 		for y := 0; y < hog.Height; y++ {
-			drawHOGCell(hog, x, y, gc, cellSize, -absMax, absMax)
+			drawHOGCell(hog, x, y, gc, cellSize, -max, max)
 		}
 	}
 
