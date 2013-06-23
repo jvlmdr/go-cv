@@ -39,11 +39,11 @@ double vv[9] = {0.0000,
     0.6428,
     0.3420};
 
-double minDouble(double x, double y) { return (x <= y ? x : y); }
-double maxDouble(double x, double y) { return (x <= y ? y : x); }
+double minDouble(double x, double y) { return (y < x ? y : x); }
+double maxDouble(double x, double y) { return (x < y ? y : x); }
 
-int minInt(int x, int y) { return (x <= y ? x : y); }
-int maxInt(int x, int y) { return (x <= y ? y : x); }
+int minInt(int x, int y) { return (y < x ? y : x); }
+int maxInt(int x, int y) { return (x < y ? y : x); }
 
 void size(int* dims, int sbin, int* cells, int* out) {
   // memory for caching orientation histograms & their norms
