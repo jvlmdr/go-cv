@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jackvalmadre/go-cv"
+	"github.com/jackvalmadre/go-vec"
 	"image"
 	"log"
 	"os"
@@ -19,6 +20,7 @@ func main() {
 	log.SetOutput(os.Stdout)
 	flag.Usage = usage
 	signed := flag.Bool("signed", false, "Treat pixels as signed")
+	negate := flag.Bool("negate", false, "Negate image")
 	cellSize := flag.Int("cell-size", 32, "Size to render cells (pixels)")
 	flag.Parse()
 	if flag.NArg() != 2 {
@@ -32,6 +34,11 @@ func main() {
 	var phi cv.RealVectorImage
 	if err := decode(input, &phi); err != nil {
 		log.Fatal(err)
+	}
+
+	if *negate {
+		phiVec := cv.RealVectorImageAsVector{phi}
+		vec.ScaleAndCopyTo(phiVec, -1, phiVec)
 	}
 
 	fmt.Println("Rendering visualization...")

@@ -74,6 +74,8 @@ func drawHOGCell(hog RealVectorImage, i, j int, gc *draw2d.ImageGraphicContext, 
 
 	for k := 0; k < HOGOrientations; k++ {
 		x := (hog.At(i, j, offset+k) - min) / (max - min)
+		x = math.Max(x, 0)
+		x = math.Min(x, 1)
 		gc.SetStrokeColor(color.Gray{uint8(x*254 + 1)})
 		theta := (0.5 + float64(k)/float64(HOGOrientations)) * math.Pi
 		drawOrientedLine(gc, u, v, theta, r)
