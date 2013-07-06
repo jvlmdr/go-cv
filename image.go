@@ -6,6 +6,11 @@ import (
 	"image/color"
 )
 
+type ConstRealImage interface {
+	Size() image.Point
+	At(int, int) float64
+}
+
 // Describes an image with real scalar values.
 type RealImage struct {
 	Pixels []float64
@@ -37,6 +42,10 @@ func (f RealImage) Set(x, y int, v float64) {
 	i := f.Height
 	j := 1
 	f.Pixels[x*i+y*j] = v
+}
+
+func (f RealImage) Vec() RealImageAsVector {
+	return RealImageAsVector{f}
 }
 
 func (f RealImage) Copy() RealImage {
@@ -92,6 +101,10 @@ func (f RealVectorImage) Set(x, y, d int, v float64) {
 	f.Pixels[x*i+y*j+d*k] = v
 }
 
+func (f RealVectorImage) Vec() RealVectorImageAsVector {
+	return RealVectorImageAsVector{f}
+}
+
 func (f RealVectorImage) Copy() RealVectorImage {
 	g := NewRealVectorImage(f.Width, f.Height, f.Channels)
 	copy(g.Pixels, f.Pixels)
@@ -113,7 +126,7 @@ func (src RealVectorImage) CopyChannels(channels []int) RealVectorImage {
 func (f RealVectorImage) NormalizePositive() {
 	x := RealVectorImageAsVector{f}
 	max := vec.Max(x)
-	vec.ScaleAndCopyTo(x, 1/max, x)
+	vec.CopyTo(x, vec.Scale(1/max, x))
 }
 
 func ColorImageToReal(im image.Image) RealVectorImage {

@@ -1,30 +1,26 @@
 package cv
 
-import (
-	"github.com/jackvalmadre/go-vec"
-)
+import "github.com/jackvalmadre/go-vec"
 
 // Describes a vectorized real image.
 type RealImageAsVector struct {
 	Image RealImage
 }
 
-func (vec RealImageAsVector) Size() int {
-	image := &vec.Image
-	return image.Width * image.Height
+func (x RealImageAsVector) Size() int {
+	return x.Image.Width * x.Image.Height
 }
 
-func (vec RealImageAsVector) At(i int) float64 {
-	return vec.Image.Pixels[i]
+func (x RealImageAsVector) At(i int) float64 {
+	return x.Image.Pixels[i]
 }
 
-func (vec RealImageAsVector) Set(i int, v float64) {
-	vec.Image.Pixels[i] = v
+func (x RealImageAsVector) Set(i int, v float64) {
+	x.Image.Pixels[i] = v
 }
 
-func (vec RealImageAsVector) Type() vec.Type {
-	image := &vec.Image
-	return RealImageAsVectorType{image.Width, image.Height}
+func (x RealImageAsVector) Type() vec.Type {
+	return RealImageAsVectorType{x.Image.Width, x.Image.Height}
 }
 
 type RealImageAsVectorType struct {
@@ -46,22 +42,20 @@ type RealVectorImageAsVector struct {
 	Image RealVectorImage
 }
 
-func (vec RealVectorImageAsVector) Size() int {
-	image := &vec.Image
-	return image.Width * image.Height * image.Channels
+func (x RealVectorImageAsVector) Size() int {
+	return x.Image.Width * x.Image.Height * x.Image.Channels
 }
 
-func (vec RealVectorImageAsVector) At(i int) float64 {
-	return vec.Image.Pixels[i]
+func (x RealVectorImageAsVector) At(i int) float64 {
+	return x.Image.Pixels[i]
 }
 
-func (vec RealVectorImageAsVector) Set(i int, v float64) {
-	vec.Image.Pixels[i] = v
+func (x RealVectorImageAsVector) Set(i int, v float64) {
+	x.Image.Pixels[i] = v
 }
 
-func (vec RealVectorImageAsVector) Type() vec.Type {
-	image := &vec.Image
-	return RealVectorImageAsVectorType{image.Width, image.Height, image.Channels}
+func (x RealVectorImageAsVector) Type() vec.Type {
+	return RealVectorImageAsVectorType{x.Image.Width, x.Image.Height, x.Image.Channels}
 }
 
 // Describes the type of such a vector.
