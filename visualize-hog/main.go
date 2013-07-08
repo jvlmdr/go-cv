@@ -37,8 +37,7 @@ func main() {
 	}
 
 	if *negate {
-		phiVec := cv.RealVectorImageAsVector{phi}
-		vec.ScaleAndCopyTo(phiVec, -1, phiVec)
+		vec.CopyTo(phi.Vec(), vec.Scale(-1, phi.Vec()))
 	}
 
 	fmt.Println("Rendering visualization...")
