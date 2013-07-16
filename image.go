@@ -1,7 +1,7 @@
 package cv
 
 import (
-	"github.com/jackvalmadre/go-vec"
+	"github.com/jackvalmadre/lin-go/vec"
 	"image"
 	"image/color"
 )
@@ -9,6 +9,12 @@ import (
 type ConstRealImage interface {
 	Size() image.Point
 	At(int, int) float64
+}
+
+type MutableRealImage interface {
+	Size() image.Point
+	At(int, int) float64
+	Set(int, int, float64)
 }
 
 // Describes an image with real scalar values.
@@ -125,8 +131,8 @@ func (src RealVectorImage) CopyChannels(channels []int) RealVectorImage {
 
 func (f RealVectorImage) NormalizePositive() {
 	x := RealVectorImageAsVector{f}
-	max := vec.Max(x)
-	vec.CopyTo(x, vec.Scale(1/max, x))
+	max, _ := vec.Max(x)
+	vec.Copy(x, vec.Scale(1/max, x))
 }
 
 func ColorImageToReal(im image.Image) RealVectorImage {

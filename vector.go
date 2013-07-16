@@ -1,6 +1,6 @@
 package cv
 
-import "github.com/jackvalmadre/go-vec"
+import "github.com/jackvalmadre/lin-go/vec"
 
 // Describes a vectorized real image.
 type RealImageAsVector struct {

@@ -2,7 +2,7 @@ package cv
 
 import (
 	"code.google.com/p/draw2d/draw2d"
-	"github.com/jackvalmadre/go-vec"
+	"github.com/jackvalmadre/lin-go/vec"
 	"image"
 	"image/color"
 	"math"
@@ -20,7 +20,7 @@ func HOGImage(hog RealVectorImage, cellSize int) image.Image {
 	}
 
 	// Maximum value in vectorized image.
-	max := vec.Max(RealVectorImageAsVector{hog})
+	max, _ := vec.Max(RealVectorImageAsVector{hog})
 
 	gc := draw2d.NewGraphicContext(pic)
 	gc.SetLineWidth(1)

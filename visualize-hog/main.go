@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jackvalmadre/go-cv"
-	"github.com/jackvalmadre/go-vec"
+	"github.com/jackvalmadre/lin-go/vec"
 	"image"
 	"log"
 	"os"
