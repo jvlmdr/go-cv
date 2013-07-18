@@ -7,7 +7,7 @@ type RealImageAsVector struct {
 	Image RealImage
 }
 
-func (x RealImageAsVector) Size() int {
+func (x RealImageAsVector) Len() int {
 	return x.Image.Width * x.Image.Height
 }
 
@@ -28,7 +28,7 @@ type RealImageAsVectorType struct {
 	Height int
 }
 
-func (t RealImageAsVectorType) Size() int {
+func (t RealImageAsVectorType) Len() int {
 	return t.Width * t.Height
 }
 
@@ -42,7 +42,7 @@ type RealVectorImageAsVector struct {
 	Image RealVectorImage
 }
 
-func (x RealVectorImageAsVector) Size() int {
+func (x RealVectorImageAsVector) Len() int {
 	return x.Image.Width * x.Image.Height * x.Image.Channels
 }
 
@@ -65,7 +65,7 @@ type RealVectorImageAsVectorType struct {
 	Channels int
 }
 
-func (t RealVectorImageAsVectorType) Size() int {
+func (t RealVectorImageAsVectorType) Len() int {
 	return t.Width * t.Height * t.Channels
 }
 
