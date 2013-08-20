@@ -50,8 +50,8 @@ func (f RealImage) Set(x, y int, v float64) {
 	f.Pixels[x*i+y*j] = v
 }
 
-func (f RealImage) Vec() RealImageAsVector {
-	return RealImageAsVector{f}
+func (f RealImage) Vec() vec.Slice {
+	return vec.Slice(f.Pixels)
 }
 
 func (f RealImage) Copy() RealImage {
@@ -107,8 +107,8 @@ func (f RealVectorImage) Set(x, y, d int, v float64) {
 	f.Pixels[x*i+y*j+d*k] = v
 }
 
-func (f RealVectorImage) Vec() RealVectorImageAsVector {
-	return RealVectorImageAsVector{f}
+func (f RealVectorImage) Vec() vec.Slice {
+	return vec.Slice(f.Pixels)
 }
 
 func (f RealVectorImage) Copy() RealVectorImage {

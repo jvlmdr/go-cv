@@ -12,7 +12,7 @@ func HOGImage(hog RealVectorImage, cellSize int) image.Image {
 	width, height := hog.Width*cellSize, hog.Height*cellSize
 	pic := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// Fill with gray.
+	// Fill with black.
 	for i := 0; i < width; i++ {
 		for j := 0; j < height; j++ {
 			pic.Set(i, j, color.Gray{0})
