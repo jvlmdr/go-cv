@@ -36,8 +36,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if phi.Channels == 31 {
+		phi = phi.CloneChannelsSlice(18, 27)
+	}
+
 	if *negate {
-		vec.CopyTo(phi.Vec(), vec.Scale(-1, phi.Vec()))
+		vec.Copy(phi.Vec(), vec.Scale(-1, phi.Vec()))
 	}
 
 	fmt.Println("Rendering visualization...")
