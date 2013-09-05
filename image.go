@@ -54,7 +54,7 @@ func (f RealImage) Vec() vec.Slice {
 	return vec.Slice(f.Pixels)
 }
 
-func (f RealImage) Copy() RealImage {
+func (f RealImage) Clone() RealImage {
 	g := NewRealImage(f.Width, f.Height)
 	copy(g.Pixels, f.Pixels)
 	return g
@@ -111,18 +111,30 @@ func (f RealVectorImage) Vec() vec.Slice {
 	return vec.Slice(f.Pixels)
 }
 
-func (f RealVectorImage) Copy() RealVectorImage {
+func (f RealVectorImage) Clone() RealVectorImage {
 	g := NewRealVectorImage(f.Width, f.Height, f.Channels)
 	copy(g.Pixels, f.Pixels)
 	return g
 }
 
-func (src RealVectorImage) CopyChannels(channels []int) RealVectorImage {
+func (src RealVectorImage) CloneChannels(channels []int) RealVectorImage {
 	dst := NewRealVectorImage(src.Width, src.Height, len(channels))
 	for i := 0; i < src.Width; i++ {
 		for j := 0; j < src.Height; j++ {
 			for k, p := range channels {
 				dst.Set(i, j, k, src.At(i, j, p))
+			}
+		}
+	}
+	return dst
+}
+
+func (src RealVectorImage) CloneChannelsSlice(a, b int) RealVectorImage {
+	dst := NewRealVectorImage(src.Width, src.Height, b-a)
+	for i := 0; i < src.Width; i++ {
+		for j := 0; j < src.Height; j++ {
+			for p := a; p < b; p++ {
+				dst.Set(i, j, p-a, src.At(i, j, p))
 			}
 		}
 	}
