@@ -1,14 +1,16 @@
-package cv
+package hog
 
 import (
-	"code.google.com/p/draw2d/draw2d"
+	"github.com/jackvalmadre/go-cv"
 	"github.com/jackvalmadre/lin-go/vec"
+	"code.google.com/p/draw2d/draw2d"
+
 	"image"
 	"image/color"
 	"math"
 )
 
-func HOGImage(hog RealVectorImage, cellSize int) image.Image {
+func Image(hog cv.RealVectorImage, cellSize int) image.Image {
 	width, height := hog.Width*cellSize, hog.Height*cellSize
 	pic := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -20,7 +22,7 @@ func HOGImage(hog RealVectorImage, cellSize int) image.Image {
 	}
 
 	// Maximum value in vectorized image.
-	max, _ := vec.Max(RealVectorImageAsVector{hog})
+	max, _ := vec.Max(hog.Vec())
 
 	gc := draw2d.NewGraphicContext(pic)
 	gc.SetLineWidth(1)
@@ -28,14 +30,14 @@ func HOGImage(hog RealVectorImage, cellSize int) image.Image {
 	// Draw cells.
 	for x := 0; x < hog.Width; x++ {
 		for y := 0; y < hog.Height; y++ {
-			drawHOGCell(hog, x, y, gc, cellSize, 0, max)
+			drawCell(hog, x, y, gc, cellSize, 0, max)
 		}
 	}
 
 	return pic
 }
 
-func SignedHOGImage(hog RealVectorImage, cellSize int) image.Image {
+func SignedImage(hog cv.RealVectorImage, cellSize int) image.Image {
 	width, height := hog.Width*cellSize, hog.Height*cellSize
 	pic := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -47,7 +49,7 @@ func SignedHOGImage(hog RealVectorImage, cellSize int) image.Image {
 	}
 
 	// Maximum absolute value in vectorized image.
-	max := vec.InfNorm(RealVectorImageAsVector{hog})
+	max := vec.InfNorm(hog.Vec())
 
 	gc := draw2d.NewGraphicContext(pic)
 	gc.SetLineWidth(2)
@@ -55,14 +57,14 @@ func SignedHOGImage(hog RealVectorImage, cellSize int) image.Image {
 	// Draw cells.
 	for x := 0; x < hog.Width; x++ {
 		for y := 0; y < hog.Height; y++ {
-			drawHOGCell(hog, x, y, gc, cellSize, -max, max)
+			drawCell(hog, x, y, gc, cellSize, -max, max)
 		}
 	}
 
 	return pic
 }
 
-func drawHOGCell(hog RealVectorImage, i, j int, gc *draw2d.ImageGraphicContext, cellSize int, min, max float64) {
+func drawCell(hog cv.RealVectorImage, i, j int, gc *draw2d.ImageGraphicContext, cellSize int, min, max float64) {
 	u := (float64(i) + 0.5) * float64(cellSize)
 	v := (float64(j) + 0.5) * float64(cellSize)
 	r := float64(cellSize) / 2
@@ -72,12 +74,12 @@ func drawHOGCell(hog RealVectorImage, i, j int, gc *draw2d.ImageGraphicContext, 
 		offset += 18
 	}
 
-	for k := 0; k < HOGOrientations; k++ {
+	for k := 0; k < Orientations; k++ {
 		x := (hog.At(i, j, offset+k) - min) / (max - min)
 		x = math.Max(x, 0)
 		x = math.Min(x, 1)
 		gc.SetStrokeColor(color.Gray{uint8(x*254 + 1)})
-		theta := (0.5 + float64(k)/float64(HOGOrientations)) * math.Pi
+		theta := (0.5 + float64(k)/float64(Orientations)) * math.Pi
 		drawOrientedLine(gc, u, v, theta, r)
 	}
 }

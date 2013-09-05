@@ -1,6 +1,6 @@
 // HOG implementation of Felzenszwalb, Girshick, McAllester, Ramanan (FGMR).
 
-package cv
+package hog
 
 // #cgo CFLAGS: -Wall -Werror
 // #cgo LDFLAGS: -lm
@@ -8,13 +8,15 @@ package cv
 import "C"
 
 import (
+	"github.com/jackvalmadre/go-cv"
+
 	"unsafe"
 )
 
-const HOGOrientations = 9
-const HOGChannels = 3*HOGOrientations + 4
+const Orientations = 9
+const Channels = 3*Orientations + 4
 
-func HOG(im RealVectorImage, binSize int) RealVectorImage {
+func HOG(im cv.RealVectorImage, binSize int) cv.RealVectorImage {
 	if im.Channels != 3 {
 		panic("Input image must have three channels")
 	}
@@ -33,7 +35,7 @@ func HOG(im RealVectorImage, binSize int) RealVectorImage {
 	norm := make([]C.double, numCells)
 
 	// Compute HOG image.
-	hog := NewRealVectorImage(int(out[1]), int(out[0]), int(out[2]))
+	hog := cv.NewRealVectorImage(int(out[1]), int(out[0]), int(out[2]))
 	C.process(
 		&dims[0],
 		(*C.double)(unsafe.Pointer(&im.Pixels[0])),

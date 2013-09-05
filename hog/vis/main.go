@@ -1,10 +1,12 @@
 package main
 
 import (
+	"github.com/jackvalmadre/go-cv"
+	"github.com/jackvalmadre/go-cv/hog"
+	"github.com/jackvalmadre/lin-go/vec"
+
 	"flag"
 	"fmt"
-	"github.com/jackvalmadre/go-cv"
-	"github.com/jackvalmadre/lin-go/vec"
 	"image"
 	"log"
 	"os"
@@ -47,9 +49,9 @@ func main() {
 	fmt.Println("Rendering visualization...")
 	var pic image.Image
 	if *signed {
-		pic = cv.SignedHOGImage(phi, *cellSize)
+		pic = hog.SignedImage(phi, *cellSize)
 	} else {
-		pic = cv.HOGImage(phi, *cellSize)
+		pic = hog.Image(phi, *cellSize)
 	}
 
 	fmt.Println("Saving image...")
