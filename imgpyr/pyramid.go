@@ -22,13 +22,23 @@ type GeoSeq struct {
 	Len   int
 }
 
+// A point in a pyramid.
+type Point struct {
+	Level int
+	Pos   image.Point
+}
+
 // Generates a sequence from start to the last element <= lim.
 //
 // If step > 1, then lim must be greater than start.
 // If step < 1, then lim must be less than start.
 func Sequence(start, step, lim float64) GeoSeq {
 	n := math.Log(lim/start) / math.Log(step)
-	return GeoSeq{start, step, int(math.Floor(n)) + 1}
+	m := int(math.Floor(n)) + 1
+	if m < 1 {
+		m = 1
+	}
+	return GeoSeq{start, step, m}
 }
 
 // Generates a sequence from first to last containing n elements.
