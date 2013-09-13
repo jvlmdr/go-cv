@@ -41,7 +41,7 @@ th.input, td.input {
 	</tr>
 	{{range .}}
 	<tr>
-		<td>Rank</td>
+		<td>{{.Rank}}</td>
 		<td><img src="{{.Image}}" /></td>
 		<td>{{.Score}}</td>
 		<td>{{.Level}}</td>
