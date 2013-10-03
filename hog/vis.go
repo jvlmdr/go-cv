@@ -55,10 +55,14 @@ func Vis(feat cv.RealVectorImage, weights WeightSet, cell int) image.Image {
 		}
 
 		max, _ := vec.Max(src)
-		rescale := func(x float64) float64 {
-			return math.Max(0, x/max)
+		if max <= 0 {
+			vec.Copy(dst, vec.Zeros(src.Len()))
+		} else {
+			rescale := func(x float64) float64 {
+				return math.Max(0, x/max)
+			}
+			vec.Copy(dst, vec.Map(src, rescale))
 		}
-		vec.Copy(dst, vec.Map(src, rescale))
 	}
 
 	gc := draw2d.NewGraphicContext(img)

@@ -60,15 +60,13 @@ func (f RealImage) Clone() RealImage {
 	return g
 }
 
-func RealImageToGray(f RealImage) image.Gray {
-	im := *image.NewGray(image.Rect(0, 0, f.Width, f.Height))
-
+func RealImageToGray(f RealImage) *image.Gray {
+	im := image.NewGray(image.Rect(0, 0, f.Width, f.Height))
 	for x := 0; x < f.Width; x += 1 {
 		for y := 0; y < f.Height; y += 1 {
 			im.SetGray(x, y, color.Gray{uint8(f.At(x, y) * 255)})
 		}
 	}
-
 	return im
 }
 
@@ -168,6 +166,26 @@ func ColorImageToReal(im image.Image) RealVectorImage {
 	return f
 }
 
+// Clones one channel of a vector image.
+func (f RealVectorImage) Channel(d int) RealImage {
+	fd := NewRealImage(f.Width, f.Height)
+	for x := 0; x < f.Width; x++ {
+		for y := 0; y < f.Height; y++ {
+			fd.Set(x, y, f.At(x, y, d))
+		}
+	}
+	return fd
+}
+
+// Copies a scalar image to one channel of a vector-image.
+func (f RealVectorImage) SetChannel(d int, fd RealImage) {
+	for x := 0; x < f.Width; x++ {
+		for y := 0; y < f.Height; y++ {
+			f.Set(x, y, d, fd.At(x, y))
+		}
+	}
+}
+
 // Accesses one dimension of a vector-valued image as a scalar image.
 type SliceOfRealVectorImage struct {
 	Image   RealVectorImage
@@ -184,8 +202,4 @@ func (slice SliceOfRealVectorImage) At(x, y int) float64 {
 
 func (slice SliceOfRealVectorImage) Set(x, y int, v float64) {
 	slice.Image.Set(x, y, slice.Channel, v)
-}
-
-func (f RealVectorImage) Channel(d int) SliceOfRealVectorImage {
-	return SliceOfRealVectorImage{f, d}
 }
