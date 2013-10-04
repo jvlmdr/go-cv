@@ -25,26 +25,34 @@ func TestHOG_VersusFGMR(t *testing.T) {
 	// Convert to real values.
 	f := rimg64.FromColor(img)
 
-	g := HOG(f, sbin)
+	g := HOG(f, FGMRConfig(sbin))
 	ref := FGMR(f, sbin)
 
-	if !g.Size().Eq(ref.Size()) {
+	if !validSize(g.Size(), ref.Size()) {
 		t.Fatalf("different sizes: want %v, got %v", ref.Size(), g.Size())
 	}
 	if g.Channels != ref.Channels {
 		t.Fatalf("different number of channels: want %v, got %v", ref.Channels, g.Channels)
 	}
 
-	const eps = 1e-6
-	for x := 0; x < ref.Width; x++ {
-		for y := 0; y < ref.Height; y++ {
-			for d := 0; d < ref.Channels; d++ {
+	const prec = 1e-9
+	// Skip last element because of a slight difference.
+	// (Not using cell outside image.)
+	for x := 0; x < g.Width-1; x++ {
+		for y := 0; y < g.Height-1; y++ {
+			for d := 0; d < g.Channels; d++ {
 				want := ref.At(x, y, d)
 				got := g.At(x, y, d)
-				if math.Abs(want-got) > eps {
+				if math.Abs(want-got) > prec {
 					t.Errorf("wrong value at (%d, %d, %d): want %g, got %g", x, y, d, want, got)
 				}
 			}
 		}
 	}
+}
+
+// Output may be one pixel smaller.
+func validSize(size, ref image.Point) bool {
+	return ((size.X == ref.X || size.X == ref.X-1) &&
+		(size.Y == ref.Y || size.Y == ref.Y-1))
 }

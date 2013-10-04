@@ -3,169 +3,172 @@ package hog
 import (
 	"github.com/jackvalmadre/go-cv/rimg64"
 
+	"image"
 	"math"
 )
 
-const NumAngles = 9
+func FGMRConfig(sbin int) Config {
+	return Config{
+		Angles:   9,
+		CellSize: sbin,
+	}
+}
 
-func HOG(f *rimg64.Multi, sbin int) *rimg64.Multi {
+type Config struct {
+	// Number of discrete orientations.
+	Angles int
+	// Number of pixels to one side of a square cell.
+	CellSize int
+}
+
+type point struct {
+	X, Y float64
+}
+
+// Returns gradient with greatest magnitude across all channels.
+func maxGrad(f *rimg64.Multi, x, y int) (point, float64) {
+	var (
+		grad point
+		max  float64
+	)
+	for d := 0; d < f.Channels; d++ {
+		p := point{
+			f.At(x+1, y, d) - f.At(x-1, y, d),
+			f.At(x, y+1, d) - f.At(x, y-1, d),
+		}
+		v := p.X*p.X + p.Y*p.Y
+		if v > max {
+			grad, max = p, v
+		}
+	}
+	return grad, max
+}
+
+// Returns an index in {0, ..., 2*n-1}.
+func quantAngle(grad point, n int) int {
+	var (
+		q   int     = 0
+		max float64 = 0
+	)
+	for i := 0; i < n; i++ {
+		theta := float64(i) / float64(n) * math.Pi
+		dot := grad.X*math.Cos(theta) + grad.Y*math.Sin(theta)
+		if dot > max {
+			q, max = i, dot
+		} else if -dot > max {
+			q, max = i+n, -dot
+		}
+	}
+	return q
+}
+
+func adjSum(f *rimg64.Image, x, y int) float64 {
+	return f.At(x, y) + f.At(x, y+1) + f.At(x+1, y) + f.At(x+1, y+1)
+}
+
+func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 	const eps = 0.0001
 
-	//	var uu [NumAngles]float64
-	//	var vv [NumAngles]float64
-	//	for i := range uu {
-	//		uu[i] = math.Cos(float64(i)/NumAngles*math.Pi)
-	//		vv[i] = math.Sin(float64(i)/NumAngles*math.Pi)
-	//	}
+	// Number of cells.
+	cells := image.Pt(
+		int(math.Floor(float64(f.Width)/float64(conf.CellSize))),
+		int(math.Floor(float64(f.Height)/float64(conf.CellSize))),
+	)
+	// Pixels which are covered by cells.
+	visible := cells.Mul(conf.CellSize)
+	// Size of output image.
+	// Exclude edge cells.
+	out := image.Pt(max(cells.X-2, 0), max(cells.Y-2, 0))
+	channels := 3*conf.Angles + 4
 
-	uu := [NumAngles]float64{1.0000,
-		0.9397,
-		0.7660,
-		0.500,
-		0.1736,
-		-0.1736,
-		-0.5000,
-		-0.7660,
-		-0.9397,
-	}
-	vv := [NumAngles]float64{0.0000,
-		0.3420,
-		0.6428,
-		0.8660,
-		0.9848,
-		0.9848,
-		0.8660,
-		0.6428,
-		0.3420,
-	}
+	// Accumulate edges into cell histograms.
+	hist := rimg64.NewMulti(cells.X, cells.Y, 2*conf.Angles)
+	for x := 1; x < visible.X-1; x++ {
+		for y := 1; y < visible.Y-1; y++ {
+			// Pick channel with strongest gradient.
+			grad, v := maxGrad(f, x, y)
+			v = math.Sqrt(v)
+			// Snap to orientation.
+			q := quantAngle(grad, conf.Angles)
 
-	dims := [2]int{f.Height, f.Width}
-	cells := [2]int{
-		round(float64(dims[0]) / float64(sbin)),
-		round(float64(dims[1]) / float64(sbin)),
-	}
-	out := [3]int{
-		max(cells[0]-2, 0),
-		max(cells[1]-2, 0),
-		27 + 4,
-	}
-
-	hist := rimg64.NewMulti(cells[1], cells[0], 2*NumAngles)
-	norm := rimg64.New(cells[1], cells[0])
-	feat := rimg64.NewMulti(out[1], out[0], 3*NumAngles+4)
-
-	visible := [2]int{cells[0] * sbin, cells[1] * sbin}
-
-	for x := 1; x < visible[1]-1; x++ {
-		for y := 1; y < visible[0]-1; y++ {
-			a := min(x, dims[1]-2)
-			b := min(y, dims[0]-2)
-
-			// pick channel with strongest gradient
-			var (
-				dx, dy, v float64
-			)
-			for d := 0; d < f.Channels; d++ {
-				p := f.At(a+1, b, d) - f.At(a-1, b, d)
-				q := f.At(a, b+1, d) - f.At(a, b-1, d)
-				r := p*p + q*q
-				if r > v {
-					dx, dy, v = p, q, r
-				}
-			}
-
-			// snap to one of 18 orientations
-			var (
-				best_dot float64 = 0
-				best_o   int     = 0
-			)
-			for o := 0; o < NumAngles; o++ {
-				dot := uu[o]*dx + vv[o]*dy
-				if dot > best_dot {
-					best_dot, best_o = dot, o
-				} else if -dot > best_dot {
-					best_dot, best_o = -dot, o+NumAngles
-				}
-			}
-
-			// add to 4 histograms around pixel using bilinear interpolation
-			xp := (float64(x)+0.5)/float64(sbin) - 0.5
-			yp := (float64(y)+0.5)/float64(sbin) - 0.5
+			// Add to 4 histograms around pixel using bilinear interpolation.
+			xp := (float64(x)+0.5)/float64(conf.CellSize) - 0.5
+			yp := (float64(y)+0.5)/float64(conf.CellSize) - 0.5
+			// Extract integer and fractional part.
 			ixp, vx0 := modf(xp)
 			iyp, vy0 := modf(yp)
+			// Complement of fraction part.
 			vx1 := 1 - vx0
 			vy1 := 1 - vy0
-			v = math.Sqrt(v)
 
 			if ixp >= 0 && iyp >= 0 {
-				addToMulti(hist, ixp, iyp, best_o, vx1*vy1*v)
+				addToMulti(hist, ixp, iyp, q, vx1*vy1*v)
 			}
-			if ixp+1 < cells[1] && iyp >= 0 {
-				addToMulti(hist, ixp+1, iyp, best_o, vx0*vy1*v)
+			if ixp+1 < cells.X && iyp >= 0 {
+				addToMulti(hist, ixp+1, iyp, q, vx0*vy1*v)
 			}
-			if ixp >= 0 && iyp+1 < cells[0] {
-				addToMulti(hist, ixp, iyp+1, best_o, vx1*vy0*v)
+			if ixp >= 0 && iyp+1 < cells.Y {
+				addToMulti(hist, ixp, iyp+1, q, vx1*vy0*v)
 			}
-			if ixp+1 < cells[1] && iyp+1 < cells[0] {
-				addToMulti(hist, ixp+1, iyp+1, best_o, vx0*vy0*v)
+			if ixp+1 < cells.X && iyp+1 < cells.Y {
+				addToMulti(hist, ixp+1, iyp+1, q, vx0*vy0*v)
 			}
 		}
 	}
 
 	// compute energy in each block by summing over orientations
-	for x := 0; x < cells[1]; x++ {
-		for y := 0; y < cells[0]; y++ {
-			for o := 0; o < 9; o++ {
-				s := hist.At(x, y, o) + hist.At(x, y, o+NumAngles)
+	norm := rimg64.New(cells.X, cells.Y)
+	for x := 0; x < cells.X; x++ {
+		for y := 0; y < cells.Y; y++ {
+			for d := 0; d < conf.Angles; d++ {
+				s := hist.At(x, y, d) + hist.At(x, y, d+conf.Angles)
 				addTo(norm, x, y, s*s)
 			}
 		}
 	}
 
-	for x := 0; x < out[1]; x++ {
-		for y := 0; y < out[0]; y++ {
-			var a, b int
-			a, b = x+1, y+1
-			n1 := 1 / math.Sqrt(norm.At(a, b)+norm.At(a, b+1)+norm.At(a+1, b)+norm.At(a+1, b+1)+eps)
-			a, b = x+1, y
-			n2 := 1 / math.Sqrt(norm.At(a, b)+norm.At(a, b+1)+norm.At(a+1, b)+norm.At(a+1, b+1)+eps)
-			a, b = x, y+1
-			n3 := 1 / math.Sqrt(norm.At(a, b)+norm.At(a, b+1)+norm.At(a+1, b)+norm.At(a+1, b+1)+eps)
-			a, b = x, y
-			n4 := 1 / math.Sqrt(norm.At(a, b)+norm.At(a, b+1)+norm.At(a+1, b)+norm.At(a+1, b+1)+eps)
+	feat := rimg64.NewMulti(out.X, out.Y, channels)
+	for x := 0; x < out.X; x++ {
+		for y := 0; y < out.Y; y++ {
+			a, b := x+1, y+1
+			// Normalization factors.
+			var n [4]float64
+			n[0] = 1 / math.Sqrt(adjSum(norm, a, b)+eps)
+			n[1] = 1 / math.Sqrt(adjSum(norm, a, b-1)+eps)
+			n[2] = 1 / math.Sqrt(adjSum(norm, a-1, b)+eps)
+			n[3] = 1 / math.Sqrt(adjSum(norm, a-1, b-1)+eps)
 
-			// contrast-sensitive features
-			var t1, t2, t3, t4 float64
-			for o := 0; o < 2*NumAngles; o++ {
-				h := hist.At(x+1, y+1, o)
-				h1 := math.Min(h*n1, 0.2)
-				h2 := math.Min(h*n2, 0.2)
-				h3 := math.Min(h*n3, 0.2)
-				h4 := math.Min(h*n4, 0.2)
-				feat.Set(x, y, o, (h1+h2+h3+h4)/2)
-				t1 += h1
-				t2 += h2
-				t3 += h3
-				t4 += h4
+			// Directed edges.
+			for d := 0; d < 2*conf.Angles; d++ {
+				h := hist.At(a, b, d)
+				var sum float64
+				for _, ni := range n {
+					sum += math.Min(h*ni, 0.2)
+				}
+				feat.Set(x, y, d, sum/2)
 			}
 
-			// contrast-insensitive features
-			off := 2 * NumAngles
-			for o := 0; o < NumAngles; o++ {
-				h := hist.At(x+1, y+1, o) + hist.At(x+1, y+1, NumAngles+o)
-				h1 := math.Min(h*n1, 0.2)
-				h2 := math.Min(h*n2, 0.2)
-				h3 := math.Min(h*n3, 0.2)
-				h4 := math.Min(h*n4, 0.2)
-				feat.Set(x, y, off+o, (h1+h2+h3+h4)/2)
+			// Un-directed edges.
+			off := 2 * conf.Angles
+			for d := 0; d < conf.Angles; d++ {
+				h := hist.At(a, b, d) + hist.At(a, b, conf.Angles+d)
+				var sum float64
+				for _, ni := range n {
+					sum += math.Min(h*ni, 0.2)
+				}
+				feat.Set(x, y, off+d, sum/2)
 			}
 
-			// texture features
-			off = 3 * NumAngles
-			feat.Set(x, y, off, 0.2357*t1)
-			feat.Set(x, y, off+1, 0.2357*t2)
-			feat.Set(x, y, off+2, 0.2357*t3)
-			feat.Set(x, y, off+3, 0.2357*t4)
+			// Texture features.
+			off = 3 * conf.Angles
+			for i, ni := range n {
+				var sum float64
+				for d := 0; d < 2*conf.Angles; d++ {
+					h := hist.At(a, b, d)
+					sum += math.Min(h*ni, 0.2)
+				}
+				feat.Set(x, y, off+i, 0.2357*sum)
+			}
 		}
 	}
 
