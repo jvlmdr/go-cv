@@ -2,7 +2,7 @@ package hog
 
 import (
 	"code.google.com/p/draw2d/draw2d"
-	"github.com/jackvalmadre/go-cv"
+	"github.com/jackvalmadre/go-cv/rimg64"
 	"github.com/jackvalmadre/lin-go/vec"
 
 	"image"
@@ -20,7 +20,7 @@ const (
 	Abs
 )
 
-func Vis(feat cv.RealVectorImage, weights WeightSet, cell int) image.Image {
+func Vis(feat *rimg64.Multi, weights WeightSet, cell int) image.Image {
 	if feat.Channels == 31 {
 		return Vis(compress(feat, weights), weights, cell)
 	}
@@ -36,13 +36,13 @@ func Vis(feat cv.RealVectorImage, weights WeightSet, cell int) image.Image {
 	draw.Draw(img, img.Bounds(), image.NewUniform(bg), image.ZP, draw.Src)
 
 	// Rescale intensities to [0, 1].
-	var dst vec.Mutable = feat.Vec()
+	var dst vec.Mutable = vec.Slice(feat.Elems)
 	var src vec.Const = dst
 
 	if weights == Signed {
 		max, _ := vec.Max(vec.Abs(src))
 		rescale := func(x float64) float64 {
-			return (1+x/max) / 2
+			return (1 + x/max) / 2
 		}
 		vec.Copy(dst, vec.Map(src, rescale))
 	} else {
@@ -78,8 +78,8 @@ func Vis(feat cv.RealVectorImage, weights WeightSet, cell int) image.Image {
 }
 
 // Flattens 31 (or 27) channels down to 9 for visualization.
-func compress(src cv.RealVectorImage, weights WeightSet) cv.RealVectorImage {
-	dst := cv.NewRealVectorImage(src.Width, src.Height, 9)
+func compress(src *rimg64.Multi, weights WeightSet) *rimg64.Multi {
+	dst := rimg64.NewMulti(src.Width, src.Height, 9)
 	for i := 0; i < 27; i++ {
 		for x := 0; x < src.Width; x++ {
 			for y := 0; y < src.Height; y++ {
@@ -100,7 +100,7 @@ func compress(src cv.RealVectorImage, weights WeightSet) cv.RealVectorImage {
 	return dst
 }
 
-func drawCell(feat cv.RealVectorImage, i, j int, gc *draw2d.ImageGraphicContext, cell int) {
+func drawCell(feat *rimg64.Multi, i, j int, gc *draw2d.ImageGraphicContext, cell int) {
 	u := (float64(i) + 0.5) * float64(cell)
 	v := (float64(j) + 0.5) * float64(cell)
 	r := float64(cell) / 2

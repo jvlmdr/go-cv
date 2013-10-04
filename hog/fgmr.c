@@ -59,7 +59,7 @@ void size(int* dims, int sbin, int* cells, int* out) {
 // main function:
 // takes a double color image and a bin size
 // returns HOG features
-void process(int* dims,
+void compute(int* dims,
              double* im,
              double* hist,
              double* norm,

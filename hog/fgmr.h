@@ -3,7 +3,7 @@
 
 void size(int* dims, int sbin, int* cells, int* out);
 
-void process(int* dims,
+void compute(int* dims,
              double* im,
              double* hist,
              double* norm,
