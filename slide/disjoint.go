@@ -1,15 +1,16 @@
 package slide
 
 import (
-	"github.com/jackvalmadre/go-cv"
+	"github.com/jackvalmadre/go-cv/rimg64"
 
 	"container/list"
 	"image"
 	"sort"
 )
 
-// Find detections which do not intersect.
-func DisjointDetections(f cv.RealImage, size image.Point) []image.Point {
+// Find detections which do not intersect
+// given the response to and size of a template.
+func Disjoint(f *rimg64.Image, size image.Point) []image.Point {
 	var pixels []image.Point
 	for x := 0; x < f.Width; x++ {
 		for y := 0; y < f.Height; y++ {
@@ -57,7 +58,7 @@ func DisjointDetections(f cv.RealImage, size image.Point) []image.Point {
 }
 
 type pixelsByScore struct {
-	Image  cv.RealImage
+	Image  *rimg64.Image
 	Pixels []image.Point
 }
 
