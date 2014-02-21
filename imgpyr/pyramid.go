@@ -3,7 +3,6 @@ package imgpyr
 import (
 	"github.com/nfnt/resize"
 
-	"fmt"
 	"image"
 	"image/draw"
 	"math"
@@ -15,54 +14,29 @@ type Pyramid struct {
 	Scales GeoSeq
 }
 
-// Describes a finite geometric sequence.
-type GeoSeq struct {
-	Start float64
-	Step  float64
-	Len   int
-}
-
 // A point in a pyramid.
 type Point struct {
 	Level int
 	Pos   image.Point
 }
 
-// Generates a sequence from start to the last element <= lim.
-//
-// If step > 1, then lim must be greater than start.
-// If step < 1, then lim must be less than start.
-func Sequence(start, step, lim float64) GeoSeq {
-	n := math.Log(lim/start) / math.Log(step)
-	m := int(math.Floor(n)) + 1
-	if m < 1 {
-		m = 1
+// Returns set of scales for an image pyramid
+// given minimum interesting image size.
+// Step can be greater than or less than 1.
+func Scales(im, tmpl image.Point, step float64) GeoSeq {
+	if step <= 0 {
+		panic("step must be positive")
 	}
-	return GeoSeq{start, step, m}
-}
-
-// Generates a sequence from first to last containing n elements.
-func LogRange(first, last float64, n int) GeoSeq {
-	step := math.Exp(math.Log(last/first) / float64(n-1))
-	return GeoSeq{first, step, n}
-}
-
-// Returns the i-th value of the progression.
-func (seq GeoSeq) At(i int) float64 {
-	if i < 0 || i >= seq.Len {
-		panic(fmt.Sprintf("out of range: %d", i))
+	// Rectify step to be between 0 and 1.
+	if step > 1 {
+		step = 1 / step
 	}
-	return seq.Start * math.Pow(seq.Step, float64(i))
-}
 
-// Returns the (floating point) index of the x in the progression.
-func (seq GeoSeq) Inv(x float64) float64 {
-	return math.Log(x/seq.Start) / math.Log(seq.Step)
-}
-
-// Returns a reversed sequence.
-func (seq GeoSeq) Reverse() GeoSeq {
-	return GeoSeq{seq.At(seq.Len - 1), 1 / seq.Step, seq.Len}
+	// Template dims as fraction of image dims.
+	x := float64(tmpl.X) / float64(im.X)
+	y := float64(tmpl.Y) / float64(im.Y)
+	// Don't want to go smaller than either.
+	return Sequence(1, step, math.Max(x, y))
 }
 
 // Default interpolation method used by New().
@@ -72,10 +46,6 @@ var DefaultInterp resize.InterpolationFunction = resize.Bicubic
 //
 // Interpolation method specified by DefaultInterp variable.
 func New(img image.Image, scales GeoSeq) *Pyramid {
-	// Ensure that images go from smallest to largest.
-	if scales.Step < 1 {
-		scales = scales.Reverse()
-	}
 	return NewInterp(img, scales, DefaultInterp)
 }
 
@@ -90,11 +60,6 @@ func NewInterp(img image.Image, scales GeoSeq, interp resize.InterpolationFuncti
 		levels[i] = resize.Resize(uint(width), uint(height), img, interp)
 	}
 	return &Pyramid{levels, scales}
-}
-
-// Returns the nearest integer.
-func round(x float64) int {
-	return int(math.Floor(x + 0.5))
 }
 
 // Creates a copy of the image pyramid.

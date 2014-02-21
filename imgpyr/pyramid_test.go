@@ -1,6 +1,7 @@
 package imgpyr
 
 import (
+	"image"
 	"math"
 	"testing"
 )
@@ -48,5 +49,28 @@ func TestLogRange(t *testing.T) {
 	got := seq.At(seq.Len - 1)
 	if math.Abs(got-last) > eps {
 		t.Errorf("wrong last element (got %g, want %g)", got, last)
+	}
+}
+
+func TestScales(t *testing.T) {
+	cases := []struct {
+		Image, Tmpl image.Point
+		Step        float64
+		Len         int
+	}{
+		{image.Pt(400, 300), image.Pt(40, 30), math.Sqrt(10), 3},
+		{image.Pt(400, 300), image.Pt(40, 40), math.Sqrt(10), 2},
+		{image.Pt(400, 300), image.Pt(0, 30), math.Sqrt(10), 3},
+		{image.Pt(512, 256), image.Pt(1, 1), 2, 9},
+	}
+
+	for _, e := range cases {
+		scales := Scales(e.Image, e.Tmpl, e.Step)
+		if scales.Len != e.Len {
+			t.Errorf(
+				"image %v, min %v, step %g: want %d, got %d",
+				e.Image, e.Tmpl, e.Step, e.Len, scales.Len,
+			)
+		}
 	}
 }
