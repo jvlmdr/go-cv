@@ -186,6 +186,19 @@ func (f RealVectorImage) SetChannel(d int, fd RealImage) {
 	}
 }
 
+// Creates a clone of a rectangle within the image.
+func (f RealVectorImage) SubImage(r image.Rectangle) RealVectorImage {
+	g := NewRealVectorImage(r.Dx(), r.Dy(), f.Channels)
+	for x := 0; x < g.Width; x++ {
+		for y := 0; y < g.Height; y++ {
+			for d := 0; d < g.Channels; d++ {
+				g.Set(x, y, d, f.At(x+r.Min.X, y+r.Min.Y, d))
+			}
+		}
+	}
+	return g
+}
+
 // Accesses one dimension of a vector-valued image as a scalar image.
 type SliceOfRealVectorImage struct {
 	Image   RealVectorImage
