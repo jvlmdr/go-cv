@@ -50,10 +50,21 @@ func mergeValDets(a, b []ValDet) []ValDet {
 // and an unordered list of ground truth regions.
 // Assigns each detection to the reference window with which it overlaps the most
 // if that overlap is sufficient.
+//
+// Overlap is evaluated using intersection over union.
+func ValidateMatch(dets []Det, refs []image.Rectangle, mininter float64) ResultSet {
+	m := Match(dets, refs, mininter)
+	return ResultsMatch(dets, refs, m)
+}
+
+// Takes a list of detections ordered by score
+// and an unordered list of ground truth regions.
+// Assigns each detection to the reference window with which it overlaps the most
+// if that overlap is sufficient.
 // Returns a map from detection index to reference index.
 //
 // Overlap is evaluated using intersection over union.
-func Validate(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
+func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 	// Map from dets to refs.
 	m := make(map[int]int)
 	// List of indices remaining in refs.
@@ -86,7 +97,7 @@ func Validate(dets []Det, refs []image.Rectangle, mininter float64) map[int]int 
 	return m
 }
 
-func Results(dets []Det, refs []image.Rectangle, m map[int]int) ResultSet {
+func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) ResultSet {
 	// Label each detection as true positive or false positive.
 	valdets := make([]ValDet, len(dets))
 	// Record which references were matched.

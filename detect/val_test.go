@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestValidate(t *testing.T) {
+func TestMatch(t *testing.T) {
 	cases := []struct {
 		Dets     []Det
 		Refs     []image.Rectangle
@@ -203,7 +203,7 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, x := range cases {
-		match := Validate(x.Dets, x.Refs, x.MinInter)
+		match := Match(x.Dets, x.Refs, x.MinInter)
 		if !reflect.DeepEqual(match, x.Match) {
 			s := fmt.Sprint(
 				"detections:\n\t", x.Dets, "\n",
