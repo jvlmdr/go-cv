@@ -32,7 +32,8 @@ func pop(rem *list.List, maxinter float64) Det {
 		next = e.Next()
 		// Get candidate detection.
 		cand := e.Value.(Det)
-		if intersect(det.Pos, cand.Pos, maxinter) {
+		// Suppress if both windows overlap each other.
+		if interRelBoth(det.Rect, cand.Rect, maxinter) {
 			// Remove.
 			rem.Remove(e)
 		}
@@ -40,16 +41,8 @@ func pop(rem *list.List, maxinter float64) Det {
 	return det
 }
 
-func intersect(a, b image.Rectangle, maxinter float64) bool {
-	ab := a.Intersect(b)
-	rela := float64(area(ab)) / float64(area(a))
-	relb := float64(area(ab)) / float64(area(b))
-	return (rela > maxinter && relb > maxinter)
-}
-
-func area(r image.Rectangle) int {
-	s := r.Size()
-	return s.X * s.Y
+func interRelBoth(a, b image.Rectangle, maxinter float64) bool {
+	return interRel(a, b) > maxinter && interRel(b, a) > maxinter
 }
 
 type byScore []Det

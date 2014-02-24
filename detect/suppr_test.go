@@ -203,6 +203,18 @@ func TestSuppressOverlap(t *testing.T) {
 				{2, image.Rect(3, 3, 8, 8)},
 			},
 		},
+		// One overlaps the other but not vice versa.
+		{
+			0.75, 10,
+			[]Det{
+				{2, image.Rect(0, 0, 10, 5)},
+				{1, image.Rect(3, 0, 8, 5)},
+			},
+			[]Det{
+				{2, image.Rect(0, 0, 10, 5)},
+				{1, image.Rect(3, 0, 8, 5)},
+			},
+		},
 	}
 
 	for _, x := range cases {
@@ -214,7 +226,7 @@ func TestSuppressOverlap(t *testing.T) {
 			continue
 		}
 		for i := range x.Out {
-			if !x.Out[i].Pos.Eq(out[i].Pos) {
+			if !x.Out[i].Rect.Eq(out[i].Rect) {
 				t.Errorf("differ at index %d", i)
 				t.Log(x)
 				t.Logf("want: %v", out)
