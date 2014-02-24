@@ -1,6 +1,7 @@
 package featpyr
 
 import (
+	"github.com/jackvalmadre/go-cv/detect"
 	"github.com/jackvalmadre/go-cv/imgpyr"
 	"github.com/jackvalmadre/go-cv/rimg64"
 	"github.com/jackvalmadre/go-cv/slide"
@@ -8,12 +9,6 @@ import (
 	"image"
 	"log"
 )
-
-// Detection in image.
-type Det struct {
-	Score float64
-	Pos   image.Rectangle
-}
 
 // Detection in pyramid.
 type pyrdet struct {
@@ -41,24 +36,20 @@ type DetectOpts struct {
 // Returns the detections ordered by score, from highest to lowest.
 //
 // The size of the template in pixels must be provided.
-func Detect(pyr *Pyramid, tmpl *rimg64.Multi, pixsize image.Point, opts DetectOpts) []Det {
-	points := detect(pyr, tmpl, pixsize, opts)
-	return pointsToRects(pyr, points, pixsize)
+func Detect(pyr *Pyramid, tmpl *rimg64.Multi, pixsize image.Point, opts DetectOpts) []detect.Det {
+	resps := evalTmpl(pyr, tmpl)
+	pts := filterDets(resps, opts.MinScore, opts.LocalMax)
+	rects := pointsToRects(pyr, pts, pixsize)
+	return detect.SuppressOverlap(rects, opts.MaxNum, opts.MaxInter)
 }
 
-func pointsToRects(pyr *Pyramid, pts []pyrdet, pixsize image.Point) []Det {
-	dets := make([]Det, len(pts))
+func pointsToRects(pyr *Pyramid, pts []pyrdet, pixsize image.Point) []detect.Det {
+	dets := make([]detect.Det, len(pts))
 	for i, pt := range pts {
 		rect := rectAt(pt.Point, pyr.Images.Scales, pyr.Rate, pixsize)
-		dets[i] = Det{pt.Score, rect}
+		dets[i] = detect.Det{pt.Score, rect}
 	}
 	return dets
-}
-
-func detect(pyr *Pyramid, tmpl *rimg64.Multi, pixsize image.Point, opts DetectOpts) []pyrdet {
-	resps := evalTmpl(pyr, tmpl)
-	cands := filterDets(resps, opts.MinScore, opts.LocalMax)
-	return suppressExhaust(resps, cands, pyr, pixsize, opts.MaxNum, opts.MaxInter)
 }
 
 func evalTmpl(pyr *Pyramid, tmpl *rimg64.Multi) []*rimg64.Image {

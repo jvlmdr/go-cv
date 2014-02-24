@@ -26,17 +26,17 @@ func (p vector) Ceil() image.Point {
 }
 
 func (p vector) Mul(k float64) vector {
-	return vector{k*p.X, k*p.Y}
+	return vector{k * p.X, k * p.Y}
 }
 
 func (p vector) Div(k float64) vector {
-	return vector{p.X/k, p.Y/k}
+	return vector{p.X / k, p.Y / k}
 }
 
 func (p vector) Add(q vector) vector {
-	return vector{p.X+q.X, p.Y+q.Y}
+	return vector{p.X + q.X, p.Y + q.Y}
 }
 
 func (p vector) Sub(q vector) vector {
-	return vector{p.X-q.X, p.Y-q.Y}
+	return vector{p.X - q.X, p.Y - q.Y}
 }
