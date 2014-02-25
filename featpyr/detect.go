@@ -8,6 +8,7 @@ import (
 
 	"image"
 	"log"
+	"math"
 )
 
 // Detection in pyramid.
@@ -22,8 +23,10 @@ type DetectOpts struct {
 	// If MaxInter is zero then windows cannot overlap at all.
 	// If MaxInter is one then windows can overlap arbitrarily.
 	MaxInter float64
-	// Threshold on scores. Can be negative infinity.
-	MinScore float64
+	// (Natural exponent of) threshold on scores.
+	// Default value (zero) means negative infinity.
+	// Cannot be negative.
+	ExpMinScore float64
 	// The number of detections.
 	// If MaxNum <= 0 then the number of detections is unrestricted.
 	MaxNum int
@@ -32,14 +35,23 @@ type DetectOpts struct {
 	LocalMax bool
 }
 
+// Returns math.Log(opts.ExpMinScore), or -Inf if ExpMinScore is not positive.
+func (opts DetectOpts) MinScore() float64 {
+	if opts.ExpMinScore > 0 {
+		return math.Log(opts.ExpMinScore)
+	}
+	return math.Inf(-1)
+}
+
 // Searches each level of the pyramid with a sliding window.
 // Returns the detections ordered by score, from highest to lowest.
 //
 // The size of the template in pixels must be provided.
-func Detect(pyr *Pyramid, tmpl *rimg64.Multi, pixsize image.Point, opts DetectOpts) []detect.Det {
-	resps := evalTmpl(pyr, tmpl)
-	pts := filterDets(resps, opts.MinScore, opts.LocalMax)
-	rects := pointsToRects(pyr, pts, pixsize)
+func Detect(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []detect.Det {
+	resps := evalTmpl(pyr, tmpl.Image)
+	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
+	rects := pointsToRects(pyr, pts, tmpl.PixSize())
+	detect.SortDets(rects)
 	return detect.SuppressOverlap(rects, opts.MaxNum, opts.MaxInter)
 }
 

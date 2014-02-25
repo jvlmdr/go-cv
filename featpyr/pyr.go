@@ -40,10 +40,7 @@ type FeatFunc func(x *rimg64.Multi) *rimg64.Multi
 
 // Constructs a feature pyramid.
 // Level i has dimension (width, height) * scales[i].
-func New(im image.Image, scales imgpyr.GeoSeq, fn FeatFunc, rate int) *Pyramid {
-	images := imgpyr.New(im, scales)
-	log.Print("finished re-sampling levels: ", len(images.Levels))
-
+func New(images *imgpyr.Pyramid, fn FeatFunc, rate int) *Pyramid {
 	feats := make([]*rimg64.Multi, len(images.Levels))
 	for i, x := range images.Levels {
 		feats[i] = fn(rimg64.FromColor(x))

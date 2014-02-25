@@ -44,9 +44,3 @@ func pop(rem *list.List, maxinter float64) Det {
 func interRelBoth(a, b image.Rectangle, maxinter float64) bool {
 	return interRel(a, b) > maxinter && interRel(b, a) > maxinter
 }
-
-type byScore []Det
-
-func (s byScore) Len() int           { return len(s) }
-func (s byScore) Less(i, j int) bool { return s[i].Score < s[j].Score }
-func (s byScore) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }

@@ -13,22 +13,7 @@ type ValDet struct {
 	True bool
 }
 
-// Can be used to generate an ROC curve.
-// Multiple can be merged.
-type ResultSet struct {
-	// Validated detections ordered by score.
-	Dets []ValDet
-	// Number of missed instances (false negatives).
-	Misses int
-}
-
-func (s *ResultSet) Merge(t *ResultSet) *ResultSet {
-	dets := mergeValDets(s.Dets, t.Dets)
-	misses := s.Misses + t.Misses
-	return &ResultSet{dets, misses}
-}
-
-func mergeValDets(a, b []ValDet) []ValDet {
+func MergeValDets(a, b []ValDet) []ValDet {
 	c := make([]ValDet, 0, len(a)+len(b))
 	for len(a) > 0 || len(b) > 0 {
 		if len(a) == 0 {
@@ -52,7 +37,7 @@ func mergeValDets(a, b []ValDet) []ValDet {
 // if that overlap is sufficient.
 //
 // Overlap is evaluated using intersection over union.
-func ValidateMatch(dets []Det, refs []image.Rectangle, mininter float64) ResultSet {
+func ValidateMatch(dets []Det, refs []image.Rectangle, mininter float64) *ResultSet {
 	m := Match(dets, refs, mininter)
 	return ResultsMatch(dets, refs, m)
 }
@@ -97,11 +82,11 @@ func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 	return m
 }
 
-func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) ResultSet {
+func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) *ResultSet {
 	// Label each detection as true positive or false positive.
 	valdets := make([]ValDet, len(dets))
 	// Record which references were matched.
-	var used map[int]bool
+	used := make(map[int]bool)
 	for i, det := range dets {
 		j, p := m[i]
 		if !p {
@@ -115,5 +100,5 @@ func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) ResultSet {
 		valdets[i] = ValDet{det, true}
 	}
 	misses := len(refs) - len(used)
-	return ResultSet{valdets, misses}
+	return &ResultSet{valdets, misses}
 }
