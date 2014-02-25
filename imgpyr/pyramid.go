@@ -52,12 +52,13 @@ func New(img image.Image, scales GeoSeq) *Pyramid {
 // Creates a new pyramid using specified interpolation.
 func NewInterp(img image.Image, scales GeoSeq, interp resize.InterpolationFunction) *Pyramid {
 	levels := make([]image.Image, scales.Len)
-	for i := 0; i < scales.Len; i++ {
+	levels[0] = clone(img)
+	for i := 1; i < scales.Len; i++ {
 		// Compute image dimensions at this level.
 		scale := scales.At(i)
 		width := round(float64(img.Bounds().Dx()) * scale)
 		height := round(float64(img.Bounds().Dy()) * scale)
-		levels[i] = resize.Resize(uint(width), uint(height), img, interp)
+		levels[i] = resize.Resize(uint(width), uint(height), levels[i-1], interp)
 	}
 	return &Pyramid{levels, scales}
 }
