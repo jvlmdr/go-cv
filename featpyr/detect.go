@@ -50,15 +50,15 @@ func (opts DetectOpts) MinScore() float64 {
 func Detect(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []detect.Det {
 	resps := evalTmpl(pyr, tmpl.Image)
 	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
-	rects := pointsToRects(pyr, pts, tmpl.PixSize())
+	rects := pointsToRects(pyr, pts, tmpl.Interior)
 	detect.SortDets(rects)
 	return detect.SuppressOverlap(rects, opts.MaxNum, opts.MaxInter)
 }
 
-func pointsToRects(pyr *Pyramid, pts []pyrdet, pixsize image.Point) []detect.Det {
+func pointsToRects(pyr *Pyramid, pts []pyrdet, interior image.Rectangle) []detect.Det {
 	dets := make([]detect.Det, len(pts))
 	for i, pt := range pts {
-		rect := rectAt(pt.Point, pyr.Images.Scales, pyr.Rate, pixsize)
+		rect := rectAt(pt.Point, pyr.Images.Scales, pyr.Rate, interior)
 		dets[i] = detect.Det{pt.Score, rect}
 	}
 	return dets
@@ -143,16 +143,16 @@ func peaks(resps []*rimg64.Image, minscore float64) []pyrdet {
 	return dets
 }
 
-func (pyr *Pyramid) rectAt(pt imgpyr.Point, pixsize image.Point) image.Rectangle {
-	return rectAt(pt, pyr.Images.Scales, pyr.Rate, pixsize)
+func (pyr *Pyramid) rectAt(pt imgpyr.Point, interior image.Rectangle) image.Rectangle {
+	return rectAt(pt, pyr.Images.Scales, pyr.Rate, interior)
 }
 
 // Converts a point in the feature pyramid to a rectangle in the image.
-func rectAt(pt imgpyr.Point, scales imgpyr.GeoSeq, rate int, pixsize image.Point) image.Rectangle {
+func rectAt(pt imgpyr.Point, scales imgpyr.GeoSeq, rate int, interior image.Rectangle) image.Rectangle {
 	scale := scales.At(pt.Level)
-	a := vec(pt.Pos).Mul(float64(rate)).Mul(1 / scale)
+	a := vec(pt.Pos).Mul(float64(rate)).Add(vec(interior.Min)).Mul(1 / scale)
 	// Scale position by rate, add size, scale by magnification.
-	b := vec(pt.Pos).Mul(float64(rate)).Add(vec(pixsize)).Mul(1 / scale)
+	b := vec(pt.Pos).Mul(float64(rate)).Add(vec(interior.Max)).Mul(1 / scale)
 	return image.Rectangle{a.Round(), b.Round()}
 }
 
@@ -167,9 +167,3 @@ func area(r image.Rectangle) int {
 	s := r.Size()
 	return s.X * s.Y
 }
-
-type byScore []pyrdet
-
-func (s byScore) Len() int           { return len(s) }
-func (s byScore) Less(i, j int) bool { return s[i].Score < s[j].Score }
-func (s byScore) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }

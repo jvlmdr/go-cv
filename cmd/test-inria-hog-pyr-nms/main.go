@@ -140,7 +140,7 @@ func toFalsePos(dets []detect.Det) *detect.ResultSet {
 
 func evalImage(tmpl *detect.FeatTmpl, im image.Image, pyrStep float64, hogBin int, opts featpyr.DetectOpts) []detect.Det {
 	// Construct image pyramid.
-	scales := imgpyr.Scales(im.Bounds().Size(), tmpl.PixSize(), pyrStep)
+	scales := imgpyr.Scales(im.Bounds().Size(), tmpl.Size, pyrStep)
 	pixpyr := imgpyr.New(im, scales)
 	// Construct HOG pyramid.
 	fn := func(rgb *rimg64.Multi) *rimg64.Multi { return hog.FGMR(rgb, hogBin) }

@@ -11,10 +11,11 @@ type FeatTmpl struct {
 	// Template in feature space.
 	Image *rimg64.Multi
 	// Size in pixels.
-	PixWidth  int
-	PixHeight int
+	Size image.Point
+	// Interior of window in pixels.
+	Interior image.Rectangle
 }
 
-func (tmpl *FeatTmpl) PixSize() image.Point {
-	return image.Pt(tmpl.PixWidth, tmpl.PixHeight)
+func (tmpl *FeatTmpl) Bounds() image.Rectangle {
+	return image.Rectangle{image.ZP, tmpl.Size}
 }
