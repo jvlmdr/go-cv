@@ -157,7 +157,7 @@ func loadFeatImage(fname string, sbin int) (*rimg64.Multi, error) {
 	if err != nil {
 		return nil, err
 	}
-	return hog.FGMR(rimg64.FromColor(im), sbin), nil
+	return hog.HOG(rimg64.FromColor(im), hog.FGMRConfig(sbin)), nil
 }
 
 func loadLines(fname string) ([]string, error) {

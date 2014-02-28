@@ -143,7 +143,7 @@ func evalImage(tmpl *detect.FeatTmpl, im image.Image, pyrStep float64, hogBin in
 	scales := imgpyr.Scales(im.Bounds().Size(), tmpl.Size, pyrStep)
 	pixpyr := imgpyr.New(im, scales)
 	// Construct HOG pyramid.
-	fn := func(rgb *rimg64.Multi) *rimg64.Multi { return hog.FGMR(rgb, hogBin) }
+	fn := func(rgb *rimg64.Multi) *rimg64.Multi { return hog.HOG(rgb, hog.FGMRConfig(hogBin)) }
 	pyr := featpyr.New(pixpyr, fn, hogBin)
 	// Search feature pyramid.
 	dets := featpyr.Detect(pyr, tmpl, opts)

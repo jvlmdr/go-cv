@@ -60,7 +60,7 @@ func main() {
 	}
 	// Construct pyramid.
 	fn := func(x *rimg64.Multi) *rimg64.Multi {
-		return hog.FGMR(x, *sbin)
+		return hog.HOG(x, FGMRConfig(*sbin))
 	}
 	scales := imgpyr.Scales(im.Bounds().Size(), image.Pt(64, 64), *step)
 	pyr := featpyr.New(im, scales, fn, *sbin)
