@@ -12,8 +12,10 @@ import (
 // Level i has size (width, height) * Scales.At(i).
 type Pyramid struct {
 	Images *imgpyr.Pyramid
-	Feats  []*rimg64.Multi
-	Rate   int
+	// Feature transform of each level in pyramid.
+	Feats []*rimg64.Multi
+	// Integer downsample rate of features.
+	Rate int
 }
 
 // Retrieves the pixel image.
@@ -22,15 +24,18 @@ func (pyr *Pyramid) Image(level int) image.Image {
 	return pyr.Images.Levels[level]
 }
 
-// Retrieves the feature image.
-// Level zero is the original image.
-func (pyr *Pyramid) Feat(level int) *rimg64.Multi {
-	return pyr.Feats[level]
-}
-
 // Accesses the scale of level i.
 func (pyr *Pyramid) Scale(i int) float64 {
 	return pyr.Images.Scales.At(i)
+}
+
+func (pyr *Pyramid) ToImagePoint(pt imgpyr.Point) image.Point {
+	return pointAt(pt, pyr.Images.Scales, pyr.Rate)
+}
+
+// Given point in feature pyramid and rectangle in pixel co-ords.
+func (pyr *Pyramid) ToImageRect(min imgpyr.Point, interior image.Rectangle) image.Rectangle {
+	return rectAt(min, pyr.Images.Scales, pyr.Rate, interior)
 }
 
 // Reserve name "Feat" in case this eventually becomes a struct.

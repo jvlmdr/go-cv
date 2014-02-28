@@ -42,6 +42,17 @@ func (f *Image) Clone() *Image {
 	return g
 }
 
+// Clones an image from part of a larger image.
+func (f *Image) SubImage(r image.Rectangle) *Image {
+	g := New(r.Dx(), r.Dy())
+	for i := 0; i < g.Width; i++ {
+		for j := 0; j < g.Height; j++ {
+			g.Set(i, j, f.At(r.Min.X+i, r.Min.Y+j))
+		}
+	}
+	return g
+}
+
 // Converts to an 8-bit integer gray image.
 // Maps [0, 1] to [0, 255].
 // Caps to [0, 255].

@@ -30,11 +30,11 @@ func MergeDets(a, b []Det) []Det {
 }
 
 func SortDets(dets []Det) {
-	sort.Sort(sort.Reverse(byScore(dets)))
+	sort.Sort(byScoreDesc(dets))
 }
 
-type byScore []Det
+type byScoreDesc []Det
 
-func (s byScore) Len() int           { return len(s) }
-func (s byScore) Less(i, j int) bool { return s[i].Score < s[j].Score }
-func (s byScore) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byScoreDesc) Len() int           { return len(s) }
+func (s byScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
+func (s byScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }

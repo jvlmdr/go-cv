@@ -9,11 +9,13 @@ import (
 	"image"
 	"log"
 	"math"
+	"sort"
 )
 
 // Detection in pyramid.
-type pyrdet struct {
+type Det struct {
 	Score float64
+	// Location in feature pyramid. Not pixel pyramid!
 	imgpyr.Point
 }
 
@@ -47,18 +49,38 @@ func (opts DetectOpts) MinScore() float64 {
 // Returns the detections ordered by score, from highest to lowest.
 //
 // The size of the template in pixels must be provided.
+func DetectPoints(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []Det {
+	resps := evalTmpl(pyr, tmpl.Image)
+	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
+	// Sort then convert to rectangles.
+	sort.Sort(byScoreDesc(pts))
+	rects := pointsToRects(pyr, pts, tmpl.Interior)
+	// Discard rectangles and take order.
+	order := detect.Suppress(rects, opts.MaxNum, opts.MaxInter)
+	for i := range order {
+		pts[i] = pts[order[i]]
+	}
+	pts = pts[:len(order)]
+	return pts
+}
+
+// Searches each level of the pyramid with a sliding window.
+// Returns the detections ordered by score, from highest to lowest.
+//
+// The size of the template in pixels must be provided.
 func Detect(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []detect.Det {
 	resps := evalTmpl(pyr, tmpl.Image)
 	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
+	// Convert to rectangles then sort.
 	rects := pointsToRects(pyr, pts, tmpl.Interior)
 	detect.SortDets(rects)
-	return detect.SuppressOverlap(rects, opts.MaxNum, opts.MaxInter)
+	return detect.SuppressDets(rects, opts.MaxNum, opts.MaxInter)
 }
 
-func pointsToRects(pyr *Pyramid, pts []pyrdet, interior image.Rectangle) []detect.Det {
+func pointsToRects(pyr *Pyramid, pts []Det, interior image.Rectangle) []detect.Det {
 	dets := make([]detect.Det, len(pts))
 	for i, pt := range pts {
-		rect := rectAt(pt.Point, pyr.Images.Scales, pyr.Rate, interior)
+		rect := pyr.ToImageRect(pt.Point, interior)
 		dets[i] = detect.Det{pt.Score, rect}
 	}
 	return dets
@@ -79,9 +101,9 @@ func evalTmpl(pyr *Pyramid, tmpl *rimg64.Multi) []*rimg64.Image {
 	return resps
 }
 
-func filterDets(resps []*rimg64.Image, minscore float64, localmax bool) []pyrdet {
+func filterDets(resps []*rimg64.Image, minscore float64, localmax bool) []Det {
 	// Evaluate sliding window at each level.
-	var dets []pyrdet
+	var dets []Det
 	if localmax {
 		dets = peaks(resps, minscore)
 	} else {
@@ -92,8 +114,8 @@ func filterDets(resps []*rimg64.Image, minscore float64, localmax bool) []pyrdet
 }
 
 // Extracts position and score per pixel in the response images.
-func windows(resps []*rimg64.Image, minscore float64) []pyrdet {
-	var dets []pyrdet
+func windows(resps []*rimg64.Image, minscore float64) []Det {
+	var dets []Det
 	for k, resp := range resps {
 		for x := 0; x < resp.Width; x++ {
 			for y := 0; y < resp.Height; y++ {
@@ -102,7 +124,7 @@ func windows(resps []*rimg64.Image, minscore float64) []pyrdet {
 					continue
 				}
 				pos := imgpyr.Point{k, image.Pt(x, y)}
-				det := pyrdet{score, pos}
+				det := Det{score, pos}
 				dets = append(dets, det)
 			}
 		}
@@ -112,8 +134,8 @@ func windows(resps []*rimg64.Image, minscore float64) []pyrdet {
 }
 
 // Extracts position and score per pixel in the response images.
-func peaks(resps []*rimg64.Image, minscore float64) []pyrdet {
-	var dets []pyrdet
+func peaks(resps []*rimg64.Image, minscore float64) []Det {
+	var dets []Det
 	for k, resp := range resps {
 		for x := 0; x < resp.Width; x++ {
 			for y := 0; y < resp.Height; y++ {
@@ -134,7 +156,7 @@ func peaks(resps []*rimg64.Image, minscore float64) []pyrdet {
 					continue
 				}
 				pos := imgpyr.Point{k, image.Pt(x, y)}
-				det := pyrdet{score, pos}
+				det := Det{score, pos}
 				dets = append(dets, det)
 			}
 		}
@@ -143,8 +165,10 @@ func peaks(resps []*rimg64.Image, minscore float64) []pyrdet {
 	return dets
 }
 
-func (pyr *Pyramid) rectAt(pt imgpyr.Point, interior image.Rectangle) image.Rectangle {
-	return rectAt(pt, pyr.Images.Scales, pyr.Rate, interior)
+// Converts a point in the feature pyramid to a rectangle in the image.
+func pointAt(pt imgpyr.Point, scales imgpyr.GeoSeq, rate int) image.Point {
+	scale := scales.At(pt.Level)
+	return vec(pt.Pos).Mul(float64(rate)).Mul(1 / scale).Round()
 }
 
 // Converts a point in the feature pyramid to a rectangle in the image.
@@ -167,3 +191,9 @@ func area(r image.Rectangle) int {
 	s := r.Size()
 	return s.X * s.Y
 }
+
+type byScoreDesc []Det
+
+func (s byScoreDesc) Len() int           { return len(s) }
+func (s byScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
+func (s byScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }

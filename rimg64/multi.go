@@ -76,6 +76,19 @@ func (f *Multi) SetChannel(d int, g *Image) {
 	}
 }
 
+// Clones an image from part of a larger image.
+func (f *Multi) SubImage(r image.Rectangle) *Multi {
+	g := NewMulti(r.Dx(), r.Dy(), f.Channels)
+	for i := 0; i < g.Width; i++ {
+		for j := 0; j < g.Height; j++ {
+			for k := 0; k < g.Channels; k++ {
+				g.Set(i, j, k, f.At(r.Min.X+i, r.Min.Y+j, k))
+			}
+		}
+	}
+	return g
+}
+
 // Converts a color image to a 3-channel vector-valued image.
 func FromColor(g image.Image) *Multi {
 	size := g.Bounds().Size()

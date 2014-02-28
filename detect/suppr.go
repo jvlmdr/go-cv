@@ -6,39 +6,48 @@ import (
 	"sort"
 )
 
-func SuppressOverlap(cands []Det, maxnum int, maxinter float64) []Det {
-	if !sort.IsSorted(sort.Reverse(byScore(cands))) {
-		panic("detections are not sorted descending by score")
+// Returns a list of indices to keep.
+func Suppress(dets []Det, maxnum int, maxinter float64) []int {
+	if !sort.IsSorted(byScoreDesc(dets)) {
+		panic("detections are not descending by score")
 	}
 	// Copy into linked list.
 	rem := list.New()
-	for _, det := range cands {
-		rem.PushBack(det)
+	for i := range dets {
+		rem.PushBack(i)
 	}
 	// Select best detection, remove those which overlap with it.
-	var dets []Det
-	for rem.Len() > 0 && (maxnum <= 0 || len(dets) < maxnum) {
-		det := pop(rem, maxinter)
-		dets = append(dets, det)
+	var subset []int
+	for rem.Len() > 0 && (maxnum <= 0 || len(subset) < maxnum) {
+		subset = append(subset, pop(rem, dets, maxinter))
 	}
-	return dets
+	return subset
 }
 
-func pop(rem *list.List, maxinter float64) Det {
-	det := rem.Remove(rem.Front()).(Det)
+func SuppressDets(dets []Det, maxnum int, maxinter float64) []Det {
+	inds := Suppress(dets, maxnum, maxinter)
+	subset := make([]Det, len(inds))
+	for i, ind := range inds {
+		subset[i] = dets[ind]
+	}
+	return subset
+}
+
+func pop(rem *list.List, dets []Det, maxinter float64) int {
+	i := rem.Remove(rem.Front()).(int)
 	var next *list.Element
 	for e := rem.Front(); e != nil; e = next {
 		// Buffer next so that we can remove e.
 		next = e.Next()
 		// Get candidate detection.
-		cand := e.Value.(Det)
+		j := e.Value.(int)
 		// Suppress if both windows overlap each other.
-		if interRelBoth(det.Rect, cand.Rect, maxinter) {
+		if interRelBoth(dets[i].Rect, dets[j].Rect, maxinter) {
 			// Remove.
 			rem.Remove(e)
 		}
 	}
-	return det
+	return i
 }
 
 func interRelBoth(a, b image.Rectangle, maxinter float64) bool {

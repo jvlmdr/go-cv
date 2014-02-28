@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSuppressOverlap(t *testing.T) {
+func TestSuppressDets(t *testing.T) {
 	cases := []struct {
 		MaxInter float64
 		MaxNum   int
@@ -218,7 +218,7 @@ func TestSuppressOverlap(t *testing.T) {
 	}
 
 	for _, x := range cases {
-		out := SuppressOverlap(x.In, x.MaxNum, x.MaxInter)
+		out := SuppressDets(x.In, x.MaxNum, x.MaxInter)
 		if len(out) != len(x.Out) {
 			t.Error("different length")
 			t.Log(x)
