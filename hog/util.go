@@ -29,11 +29,13 @@ func round(x float64) int {
 
 func modf(x float64) (int, float64) {
 	if x < 0 {
+		// Round down not towards zero.
 		a, b := modf(-x)
-		return -a - 1, 1 - b
+		return -a - 1, -b + 1
 	}
-	a, b := math.Modf(x)
-	return int(a), b
+	a := int(x)
+	b := x - float64(a)
+	return a, b
 }
 
 // Avoids f.Set(x, y, f.Get(x, y, ...)).

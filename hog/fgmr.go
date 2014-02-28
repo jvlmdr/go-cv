@@ -16,7 +16,7 @@ import (
 const Orientations = 9
 const Channels = 3*Orientations + 4
 
-func FGMR(im *rimg64.Multi, sbin int) *rimg64.Multi {
+func fgmr(im *rimg64.Multi, sbin int) *rimg64.Multi {
 	if im.Channels != 3 {
 		panic("Input image must have three channels")
 	}

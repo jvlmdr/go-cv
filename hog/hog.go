@@ -26,6 +26,7 @@ type point struct {
 }
 
 // Returns gradient with greatest magnitude across all channels.
+// 1 <= x <= width-2, 1 <= y <= height-2
 func maxGrad(f *rimg64.Multi, x, y int) (point, float64) {
 	var (
 		grad point
@@ -62,31 +63,37 @@ func quantAngle(grad point, n int) int {
 	return q
 }
 
-func adjSum(f *rimg64.Image, x, y int) float64 {
-	return f.At(x, y) + f.At(x, y+1) + f.At(x+1, y) + f.At(x+1, y+1)
+func adjSum(f *rimg64.Image, x1, y1, x2, y2 int) float64 {
+	return f.At(x1, y1) + f.At(x1, y2) + f.At(x2, y1) + f.At(x2, y2)
 }
 
 func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 	const eps = 0.0001
-
-	// Number of cells.
-	cells := image.Pt(
-		int(math.Floor(float64(f.Width)/float64(conf.CellSize))),
-		int(math.Floor(float64(f.Height)/float64(conf.CellSize))),
-	)
-	// Pixels which are covered by cells.
-	visible := cells.Mul(conf.CellSize)
-	// Size of output image.
-	// Exclude edge cells.
-	out := image.Pt(max(cells.X-2, 0), max(cells.Y-2, 0))
 	channels := 3*conf.Angles + 4
+
+	// Leave a one-pixel border to compute derivatives.
+	inside := image.Rectangle{image.ZP, f.Size()}.Inset(1)
+	// Leave a half-cell border.
+	half := conf.CellSize / 2
+	valid := inside.Inset(half)
+	// Number of whole cells inside valid region.
+	cells := valid.Size().Div(conf.CellSize)
+	if cells.X <= 0 || cells.Y <= 0 {
+		return nil
+	}
+	// Remove one cell on all sides for output.
+	out := cells.Sub(image.Pt(2, 2))
+	// Region to iterate over.
+	size := cells.Mul(conf.CellSize).Add(image.Pt(2*half, 2*half))
+	vis := image.Rectangle{inside.Min, inside.Min.Add(size)}
 
 	// Accumulate edges into cell histograms.
 	hist := rimg64.NewMulti(cells.X, cells.Y, 2*conf.Angles)
-	for x := 1; x < visible.X-1; x++ {
-		for y := 1; y < visible.Y-1; y++ {
+	for a := vis.Min.X; a < vis.Max.X; a++ {
+		for b := vis.Min.Y; b < vis.Max.Y; b++ {
+			x, y := a-half-vis.Min.X, b-half-vis.Min.Y
 			// Pick channel with strongest gradient.
-			grad, v := maxGrad(f, x, y)
+			grad, v := maxGrad(f, a, b)
 			v = math.Sqrt(v)
 			// Snap to orientation.
 			q := quantAngle(grad, conf.Angles)
@@ -133,10 +140,10 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 			a, b := x+1, y+1
 			// Normalization factors.
 			var n [4]float64
-			n[0] = 1 / math.Sqrt(adjSum(norm, a, b)+eps)
-			n[1] = 1 / math.Sqrt(adjSum(norm, a, b-1)+eps)
-			n[2] = 1 / math.Sqrt(adjSum(norm, a-1, b)+eps)
-			n[3] = 1 / math.Sqrt(adjSum(norm, a-1, b-1)+eps)
+			n[0] = 1 / math.Sqrt(adjSum(norm, a, b, a+1, b+1)+eps)
+			n[1] = 1 / math.Sqrt(adjSum(norm, a, b, a+1, b-1)+eps)
+			n[2] = 1 / math.Sqrt(adjSum(norm, a, b, a-1, b+1)+eps)
+			n[3] = 1 / math.Sqrt(adjSum(norm, a, b, a-1, b-1)+eps)
 
 			// Directed edges.
 			for d := 0; d < 2*conf.Angles; d++ {
