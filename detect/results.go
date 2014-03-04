@@ -1,6 +1,10 @@
 package detect
 
-import "github.com/jackvalmadre/go-ml"
+import (
+	"github.com/jackvalmadre/go-ml"
+
+	"sort"
+)
 
 // Can be used to generate an ROC curve.
 // Multiple can be merged.
@@ -23,6 +27,28 @@ func (s *ResultSet) Merge(t *ResultSet) *ResultSet {
 	return &ResultSet{dets, misses}
 }
 
+func MergeResults(results ...*ResultSet) *ResultSet {
+	switch len(results) {
+	case 0:
+		return nil
+	case 1:
+		return results[0].Clone()
+	case 2:
+		return results[0].Merge(results[1])
+	}
+
+	r := new(ResultSet)
+	for _, s := range results {
+		if s == nil {
+			continue
+		}
+		r.Dets = append(r.Dets, s.Dets...)
+		r.Misses += s.Misses
+	}
+	sort.Sort(valDetsByScoreDesc(r.Dets))
+	return r
+}
+
 func (s *ResultSet) Clone() *ResultSet {
 	if s == nil {
 		return nil
@@ -33,6 +59,10 @@ func (s *ResultSet) Clone() *ResultSet {
 }
 
 func (s *ResultSet) Enum() []ml.Result {
+	if !sort.IsSorted(valDetsByScoreDesc(s.Dets)) {
+		panic("not sorted")
+	}
+
 	n := len(s.Dets)
 	results := make([]ml.Result, n+1)
 	// Start with everything classified negative.

@@ -8,8 +8,8 @@ import (
 
 // Returns a list of indices to keep.
 func Suppress(dets []Det, maxnum int, maxinter float64) []int {
-	if !sort.IsSorted(byScoreDesc(dets)) {
-		panic("detections are not descending by score")
+	if !sort.IsSorted(detsByScoreDesc(dets)) {
+		panic("not sorted")
 	}
 	// Copy into linked list.
 	rem := list.New()

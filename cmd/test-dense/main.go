@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jackvalmadre/go-cv/detect"
 	"github.com/jackvalmadre/go-cv/hog"
 	"github.com/jackvalmadre/go-cv/rimg64"
 	"github.com/jackvalmadre/go-cv/slide"
@@ -51,30 +52,28 @@ func main() {
 	)
 
 	// Load template.
-	var tmpl *rimg64.Multi
+	var tmpl *detect.FeatTmpl
 	if err := loadGob(tmplFile, &tmpl); err != nil {
 		log.Fatal(err)
 	}
 
 	// Evaluate detector on all images in the positive set.
-	posScores, err := evalExamplesFile(tmpl, posFile, *posDir, *sbin)
+	posScores, err := evalExamplesFile(tmpl.Image, posFile, *posDir, *sbin)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Evaluate detector on all images in the negative set.
-	negScores, err := evalImagesFile(tmpl, negFile, *negDir, *sbin)
+	negScores, err := evalImagesFile(tmpl.Image, negFile, *negDir, *sbin)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Print("sort positives: ", len(posScores))
-	sort.Float64s(posScores)
 	log.Print("sort negatives: ", len(negScores))
-	sort.Float64s(negScores)
 
 	// TP, FP, TN, FN data for ROC or analogous curve.
 	results := ml.EnumerateResults(posScores, negScores)
-	results = summarize(results)
+	//	results = summarize(results)
 
 	if err := writeResults(os.Stdout, results); err != nil {
 		log.Fatal(err)

@@ -3,6 +3,7 @@ package detect
 import (
 	"container/list"
 	"image"
+	"sort"
 )
 
 // Validated detection.
@@ -14,6 +15,13 @@ type ValDet struct {
 }
 
 func MergeValDets(a, b []ValDet) []ValDet {
+	if !sort.IsSorted(valDetsByScoreDesc(a)) {
+		panic("not sorted")
+	}
+	if !sort.IsSorted(valDetsByScoreDesc(b)) {
+		panic("not sorted")
+	}
+
 	c := make([]ValDet, 0, len(a)+len(b))
 	for len(a) > 0 || len(b) > 0 {
 		if len(a) == 0 {
@@ -102,3 +110,9 @@ func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) *ResultSet 
 	misses := len(refs) - len(used)
 	return &ResultSet{valdets, misses}
 }
+
+type valDetsByScoreDesc []ValDet
+
+func (s valDetsByScoreDesc) Len() int           { return len(s) }
+func (s valDetsByScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
+func (s valDetsByScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }

@@ -11,7 +11,14 @@ type Det struct {
 	Rect  image.Rectangle
 }
 
-func MergeDets(a, b []Det) []Det {
+func MergeTwoDets(a, b []Det) []Det {
+	if !sort.IsSorted(detsByScoreDesc(a)) {
+		panic("not sorted")
+	}
+	if !sort.IsSorted(detsByScoreDesc(b)) {
+		panic("not sorted")
+	}
+
 	c := make([]Det, 0, len(a)+len(b))
 	for len(a) > 0 || len(b) > 0 {
 		if len(a) == 0 {
@@ -29,12 +36,36 @@ func MergeDets(a, b []Det) []Det {
 	return c
 }
 
-func SortDets(dets []Det) {
-	sort.Sort(byScoreDesc(dets))
+func cloneDets(src []Det) []Det {
+	dst := make([]Det, len(src))
+	copy(dst, src)
+	return dst
 }
 
-type byScoreDesc []Det
+func MergeDets(dets ...[]Det) []Det {
+	switch len(dets) {
+	case 0:
+		return nil
+	case 1:
+		return cloneDets(dets[0])
+	case 2:
+		return MergeTwoDets(dets[0], dets[1])
+	}
 
-func (s byScoreDesc) Len() int           { return len(s) }
-func (s byScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
-func (s byScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+	var all []Det
+	for _, d := range dets {
+		all = append(all, d...)
+	}
+	sort.Sort(detsByScoreDesc(all))
+	return all
+}
+
+func SortDets(dets []Det) {
+	sort.Sort(detsByScoreDesc(dets))
+}
+
+type detsByScoreDesc []Det
+
+func (s detsByScoreDesc) Len() int           { return len(s) }
+func (s detsByScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
+func (s detsByScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
