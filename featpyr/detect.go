@@ -8,7 +8,6 @@ import (
 
 	"image"
 	"log"
-	"math"
 	"sort"
 )
 
@@ -19,44 +18,18 @@ type Det struct {
 	imgpyr.Point
 }
 
-type DetectOpts struct {
-	// Limits the intersection of two detections.
-	// The intersection is normalized by the union and is therefore between 0 and 1.
-	// If MaxInter is zero then windows cannot overlap at all.
-	// If MaxInter is one then windows can overlap arbitrarily.
-	MaxInter float64
-	// (Natural exponent of) threshold on scores.
-	// Default value (zero) means negative infinity.
-	// Cannot be negative.
-	ExpMinScore float64
-	// The number of detections.
-	// If MaxNum <= 0 then the number of detections is unrestricted.
-	MaxNum int
-	// If LocalMax is true then every detection must be
-	// greater than or equal to its 4-connected neighborhood.
-	LocalMax bool
-}
-
-// Returns math.Log(opts.ExpMinScore), or -Inf if ExpMinScore is not positive.
-func (opts DetectOpts) MinScore() float64 {
-	if opts.ExpMinScore > 0 {
-		return math.Log(opts.ExpMinScore)
-	}
-	return math.Inf(-1)
-}
-
 // Searches each level of the pyramid with a sliding window.
 // Returns the detections ordered by score, from highest to lowest.
 //
 // The size of the template in pixels must be provided.
-func DetectPoints(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []Det {
+func DetectPoints(pyr *Pyramid, tmpl *detect.FeatTmpl, overlap detect.OverlapFunc, minscore float64, maxnum int, localmax bool) []Det {
 	resps := evalTmpl(pyr, tmpl.Image)
-	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
+	pts := filterDets(resps, minscore, localmax)
 	// Sort then convert to rectangles.
 	sort.Sort(byScoreDesc(pts))
 	rects := pointsToRects(pyr, pts, tmpl.Interior)
 	// Discard rectangles and take order.
-	order := detect.Suppress(rects, opts.MaxNum, opts.MaxInter)
+	order := detect.Suppress(rects, maxnum, overlap)
 	for i := range order {
 		pts[i] = pts[order[i]]
 	}
@@ -68,13 +41,13 @@ func DetectPoints(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []Det {
 // Returns the detections ordered by score, from highest to lowest.
 //
 // The size of the template in pixels must be provided.
-func Detect(pyr *Pyramid, tmpl *detect.FeatTmpl, opts DetectOpts) []detect.Det {
+func Detect(pyr *Pyramid, tmpl *detect.FeatTmpl, overlap detect.OverlapFunc, minscore float64, maxnum int, localmax bool) []detect.Det {
 	resps := evalTmpl(pyr, tmpl.Image)
-	pts := filterDets(resps, opts.MinScore(), opts.LocalMax)
+	pts := filterDets(resps, minscore, localmax)
 	// Convert to rectangles then sort.
 	rects := pointsToRects(pyr, pts, tmpl.Interior)
 	detect.SortDets(rects)
-	return detect.SuppressDets(rects, opts.MaxNum, opts.MaxInter)
+	return detect.SuppressDets(rects, maxnum, overlap)
 }
 
 func pointsToRects(pyr *Pyramid, pts []Det, interior image.Rectangle) []detect.Det {

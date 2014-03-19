@@ -71,7 +71,7 @@ func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 		var argmax *list.Element
 		for e := r.Front(); e != nil; e = e.Next() {
 			j := e.Value.(int)
-			inter := iou(det.Rect, refs[j])
+			inter := IOU(det.Rect, refs[j])
 			if inter < mininter {
 				continue
 			}
