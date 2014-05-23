@@ -1,9 +1,9 @@
 package detect
 
 import (
-	"github.com/jackvalmadre/go-ml"
-
 	"sort"
+
+	"github.com/jackvalmadre/go-ml"
 )
 
 // Can be used to generate an ROC curve.

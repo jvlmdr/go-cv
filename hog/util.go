@@ -1,9 +1,9 @@
 package hog
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"math"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 func min(a, b int) int {

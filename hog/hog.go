@@ -1,11 +1,24 @@
 package hog
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"image"
 	"math"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
+
+type Transform struct {
+	Conf Config
+}
+
+func (t Transform) Apply(im image.Image) *rimg64.Multi {
+	return HOG(rimg64.FromColor(im), t.Conf)
+}
+
+func (t Transform) Rate() int {
+	// For now, down-sample rate equals size of cell.
+	return t.Conf.CellSize
+}
 
 func FGMRConfig(sbin int) Config {
 	return Config{
@@ -180,4 +193,20 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 	}
 
 	return feat
+}
+
+func FeatSize(pix image.Point, conf Config) image.Point {
+	// Leave a one-pixel border to compute derivatives.
+	inside := image.Rectangle{image.ZP, pix}.Inset(1)
+	// Leave a half-cell border.
+	half := conf.CellSize / 2
+	valid := inside.Inset(half)
+	// Number of whole cells inside valid region.
+	cells := valid.Size().Div(conf.CellSize)
+	if cells.X <= 0 || cells.Y <= 0 {
+		return image.ZP
+	}
+	// Remove one cell on all sides for output.
+	out := cells.Sub(image.Pt(2, 2))
+	return out
 }

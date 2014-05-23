@@ -1,6 +1,10 @@
 package rimg64
 
-import "image"
+import (
+	"image"
+
+	"github.com/gonum/floats"
+)
 
 // Describe a real-vector-valued image.
 type Multi struct {
@@ -104,4 +108,27 @@ func FromColor(g image.Image) *Multi {
 		}
 	}
 	return f
+}
+
+// Returns the sum of two images.
+// Does not modify either input.
+func (f *Multi) Plus(g *Multi) *Multi {
+	dst := NewMulti(f.Width, f.Height, f.Channels)
+	floats.Add(dst.Elems, f.Elems, g.Elems)
+	return dst
+}
+
+// Returns the difference of two images.
+// Does not modify either input.
+func (f *Multi) Minus(g *Multi) *Multi {
+	dst := NewMulti(f.Width, f.Height, f.Channels)
+	floats.SubTo(dst.Elems, f.Elems, g.Elems)
+	return dst
+}
+
+// Returns a scaled copy of an image.
+func (f *Multi) Scale(alpha float64) *Multi {
+	dst := NewMulti(f.Width, f.Height, f.Channels)
+	floats.AddScaled(dst.Elems, alpha, f.Elems)
+	return dst
 }

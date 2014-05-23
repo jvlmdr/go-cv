@@ -1,11 +1,11 @@
 package imgpyr
 
 import (
-	"github.com/nfnt/resize"
-
 	"image"
 	"image/draw"
 	"math"
+
+	"github.com/nfnt/resize"
 )
 
 // Multi-resolution representation of an image.

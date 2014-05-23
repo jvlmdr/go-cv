@@ -1,14 +1,14 @@
 package hog
 
 import (
-	"code.google.com/p/draw2d/draw2d"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/lin-go/vec"
-
 	"image"
 	"image/color"
 	"image/draw"
 	"math"
+
+	"code.google.com/p/draw2d/draw2d"
+	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jackvalmadre/lin-go/vec"
 )
 
 type WeightSet int

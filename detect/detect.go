@@ -3,69 +3,114 @@ package detect
 import (
 	"image"
 	"sort"
+
+	"github.com/jackvalmadre/go-cv/feat"
+	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jackvalmadre/go-cv/slide"
 )
 
-// Detection in image.
-type Det struct {
+// Performs detection and non-max suppression.
+// Returns a list of scored detection windows.
+// Windows are specified as rectangles in the original pixel image.
+//
+// It is necessary to provide:
+// the integer downsample rate of the feature transform,
+// the margin which was added to the image before taking the feature transform,
+// the rectangular region within the window which corresponds to the annotation.
+func Detect(im *rimg64.Multi, margin feat.Margin, tmpl *FeatTmpl, rate int, detopts DetFilter, suppropts SupprFilter) []Det {
+	// Evaluate detector and extract rectangles.
+	pts := Points(im, tmpl.Image, detopts.LocalMax, detopts.MinScore)
+	dets := make([]Det, len(pts))
+	for i, det := range pts {
+		rect := FeatPtToImRect(det.Point, rate, margin, tmpl.Interior)
+		dets[i] = Det{det.Score, rect}
+	}
+	// Perform non-max suppression.
+	Sort(dets)
+	dets = Suppress(dets, suppropts.MaxNum, suppropts.Overlap)
+	return dets
+}
+
+type DetFilter struct {
+	// Ignore detections which are smaller than a neighbor?
+	LocalMax bool
+	// Score threshold.
+	MinScore float64
+}
+
+// Describes a scored position.
+type DetPos struct {
 	Score float64
-	Rect  image.Rectangle
+	image.Point
 }
 
-func MergeTwoDets(a, b []Det) []Det {
-	if !sort.IsSorted(detsByScoreDesc(a)) {
-		panic("not sorted")
-	}
-	if !sort.IsSorted(detsByScoreDesc(b)) {
-		panic("not sorted")
-	}
-
-	c := make([]Det, 0, len(a)+len(b))
-	for len(a) > 0 || len(b) > 0 {
-		if len(a) == 0 {
-			return append(c, b...)
+// Returns a list of scored detection windows.
+// Windows are described by their top-left corner in the feature image.
+//
+// If localmax is true, then points which have a neighbor greater than them are excluded.
+// Any windows less than minscore are excluded.
+func Points(im *rimg64.Multi, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
+	resp := slide.CorrMulti(im, tmpl)
+	var dets []DetPos
+	// Iterate over positions and check criteria.
+	for u := 0; u < resp.Width; u++ {
+		for v := 0; v < resp.Height; v++ {
+			score := resp.At(u, v)
+			if score < minscore {
+				continue
+			}
+			if localmax && !localMax(resp, u, v) {
+				continue
+			}
+			// Scale by rate, then apply margin and interior offsets.
+			dets = append(dets, DetPos{score, image.Pt(u, v)})
 		}
-		if len(b) == 0 {
-			return append(c, a...)
-		}
-		if a[0].Score > b[0].Score {
-			c, a = append(c, a[0]), a[1:]
-		} else {
-			c, b = append(c, b[0]), b[1:]
-		}
 	}
-	return c
+	return dets
 }
 
-func cloneDets(src []Det) []Det {
-	dst := make([]Det, len(src))
-	copy(dst, src)
-	return dst
+// Converts the position of a detection in a feature image to a rectangle in the intensity image.
+//
+// Additional arguments are:
+// the integer downsample rate of the feature transform,
+// the margin which was added to the image before taking the feature transform,
+// the rectangular region within the window which corresponds to the annotation.
+func FeatPtToImRect(pt image.Point, rate int, margin feat.Margin, interior image.Rectangle) image.Rectangle {
+	return interior.Add(pt.Mul(rate)).Sub(margin.TopLeft())
 }
 
-func MergeDets(dets ...[]Det) []Det {
-	switch len(dets) {
-	case 0:
-		return nil
-	case 1:
-		return cloneDets(dets[0])
-	case 2:
-		return MergeTwoDets(dets[0], dets[1])
+func localMax(r *rimg64.Image, u, v int) bool {
+	uv := r.At(u, v)
+	if u > 0 && r.At(u-1, v) > uv {
+		return false
 	}
-
-	var all []Det
-	for _, d := range dets {
-		all = append(all, d...)
+	if u < r.Width-1 && r.At(u+1, v) > uv {
+		return false
 	}
-	sort.Sort(detsByScoreDesc(all))
-	return all
+	if v > 0 && r.At(u, v-1) > uv {
+		return false
+	}
+	if v < r.Height-1 && r.At(u, v+1) > uv {
+		return false
+	}
+	return true
 }
 
-func SortDets(dets []Det) {
-	sort.Sort(detsByScoreDesc(dets))
+func sortPoints(resp *rimg64.Image, pts []image.Point) {
+	sort.Sort(ptsByScore{resp, pts})
 }
 
-type detsByScoreDesc []Det
+type ptsByScore struct {
+	Resp  *rimg64.Image
+	Elems []image.Point
+}
 
-func (s detsByScoreDesc) Len() int           { return len(s) }
-func (s detsByScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
-func (s detsByScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s ptsByScore) Len() int { return len(s.Elems) }
+
+func (s ptsByScore) Less(i, j int) bool {
+	p := s.Elems[i]
+	q := s.Elems[j]
+	return s.Resp.At(p.X, p.Y) > s.Resp.At(q.X, q.Y)
+}
+
+func (s ptsByScore) Swap(i, j int) { s.Elems[i], s.Elems[j] = s.Elems[j], s.Elems[i] }

@@ -1,11 +1,11 @@
 package slide
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-fftw/fftw"
-
 	"image"
 	"math/cmplx"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jackvalmadre/go-fftw/fftw"
 )
 
 // Returns the number of positions such that the template g lies entirely inside the image f.
@@ -27,8 +27,9 @@ func useFourier(f, g image.Point) bool {
 }
 
 // Computes correlation of template g with image f.
-//
-// Takes inner product of g with f at all positions such that it lies entirely within f.
+// Returns the inner product at all positions such that g lies entirely within f.
+//	If h = corr(f, g), then h(t) = sum_{tau} f(t+tau) g(tau).
+// Beware: This is sometimes denoted g * f with the arguments in the opposite order.
 //
 // Automatically selects between naive and Fourier-domain convolution.
 func Corr(f, g *rimg64.Image) *rimg64.Image {

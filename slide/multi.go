@@ -1,15 +1,16 @@
 package slide
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-fftw/fftw"
-
 	"fmt"
 	"image"
 	"math/cmplx"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jackvalmadre/go-fftw/fftw"
 )
 
-// Takes inner product of g with f at all positions such that it lies entirely within f.
+// Performs correlation of multi-channel images.
+// Returns sum over channels.
 func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
 	if f.Channels != g.Channels {
 		err := fmt.Errorf("different number of channels: %d, %d", f.Channels, g.Channels)
@@ -62,39 +63,39 @@ func corrMultiFFT(f, g *rimg64.Multi) *rimg64.Image {
 	// Scale such that convolution theorem holds.
 	n := float64(f.Width) * float64(f.Height)
 
-	x := fftw.NewArray2(f.Width, f.Height)
-	y := fftw.NewArray2(f.Width, f.Height)
+	fhat := fftw.NewArray2(f.Width, f.Height)
+	ghat := fftw.NewArray2(f.Width, f.Height)
 
 	h := rimg64.New(size.X, size.Y)
 	for k := 0; k < f.Channels; k++ {
 		// Copy into FFT arrays.
 		for u := 0; u < f.Width; u++ {
 			for v := 0; v < f.Height; v++ {
-				x.Set(u, v, complex(f.At(u, v, k), 0))
+				fhat.Set(u, v, complex(f.At(u, v, k), 0))
 				if u < g.Width && v < g.Height {
-					y.Set(u, v, complex(g.At(u, v, k), 0))
+					ghat.Set(u, v, complex(g.At(u, v, k), 0))
 				} else {
-					y.Set(u, v, 0)
+					ghat.Set(u, v, 0)
 				}
 			}
 		}
 		// Take forward transforms.
-		x = fftw.FFT2(x)
-		y = fftw.FFT2(y)
+		fhat = fftw.FFT2(fhat)
+		ghat = fftw.FFT2(ghat)
 		// Multiply in Fourier domain.
 		for u := 0; u < f.Width; u++ {
 			for v := 0; v < f.Height; v++ {
-				x.Set(u, v, x.At(u, v)*cmplx.Conj(y.At(u, v)))
+				fhat.Set(u, v, fhat.At(u, v)*cmplx.Conj(ghat.At(u, v)))
 			}
 		}
 		// Take inverse transform.
-		x = fftw.IFFT2(x)
+		fhat = fftw.IFFT2(fhat)
 
 		// Sum response over multiple channels.
 		// Scale such that convolution theorem holds.
 		for u := 0; u < size.X; u++ {
 			for v := 0; v < size.Y; v++ {
-				h.Set(u, v, h.At(u, v)+real(x.At(u, v))/n)
+				h.Set(u, v, h.At(u, v)+real(fhat.At(u, v))/n)
 			}
 		}
 	}

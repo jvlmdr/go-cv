@@ -40,3 +40,9 @@ func (p vector) Add(q vector) vector {
 func (p vector) Sub(q vector) vector {
 	return vector{p.X - q.X, p.Y - q.Y}
 }
+
+func scaleRect(k float64, r image.Rectangle) image.Rectangle {
+	a := vec(r.Min).Mul(k).Round()
+	b := vec(r.Max).Mul(k).Round()
+	return image.Rectangle{a, b}
+}

@@ -3,6 +3,8 @@ package rimg64
 import (
 	"image"
 	"image/color"
+
+	"github.com/gonum/floats"
 )
 
 // Describes a real-valued image.
@@ -66,4 +68,27 @@ func ToGray(f *Image) *image.Gray {
 		}
 	}
 	return g
+}
+
+// Returns the sum of two images.
+// Does not modify either input.
+func (f *Image) Plus(g *Image) *Image {
+	dst := New(f.Width, f.Height)
+	floats.Add(dst.Elems, f.Elems, g.Elems)
+	return dst
+}
+
+// Returns the difference of two images.
+// Does not modify either input.
+func (f *Image) Minus(g *Image) *Image {
+	dst := New(f.Width, f.Height)
+	floats.SubTo(dst.Elems, f.Elems, g.Elems)
+	return dst
+}
+
+// Returns a scaled copy of an image.
+func (f *Image) Scale(alpha float64) *Image {
+	dst := New(f.Width, f.Height)
+	floats.AddScaled(dst.Elems, alpha, f.Elems)
+	return dst
 }

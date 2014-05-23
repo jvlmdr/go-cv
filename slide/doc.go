@@ -1,4 +1,4 @@
 /*
-Package for doing sliding-window detection.
+Package slide performs cross-correlation of real images.
 */
 package slide

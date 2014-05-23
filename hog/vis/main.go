@@ -3,11 +3,9 @@ package main
 import (
 	"github.com/jackvalmadre/go-cv"
 	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/lin-go/vec"
 
 	"flag"
 	"fmt"
-	"image"
 	"log"
 	"os"
 )
@@ -20,11 +18,17 @@ func usage() {
 
 func main() {
 	log.SetOutput(os.Stdout)
+
+	var (
+		name string
+		cell int
+	)
+	flag.StringVar(&name, "weights", "signed", `in {"signed", "pos", "neg", "abs"}`)
+	flag.IntVar(&cell, "cell", 32, "Size to render cells (pixels)")
+
 	flag.Usage = usage
-	signed := flag.Bool("signed", false, "Treat pixels as signed")
-	negate := flag.Bool("negate", false, "Negate image")
-	cellSize := flag.Int("cell-size", 32, "Size to render cells (pixels)")
 	flag.Parse()
+
 	if flag.NArg() != 2 {
 		flag.Usage()
 		os.Exit(1)
@@ -33,26 +37,25 @@ func main() {
 	output := flag.Arg(1)
 
 	fmt.Println("Opening image...")
-	var phi cv.RealVectorImage
-	if err := decode(input, &phi); err != nil {
+	var feat cv.RealVectorImage
+	if err := decode(input, &feat); err != nil {
 		log.Fatal(err)
 	}
 
-	if phi.Channels == 31 {
-		phi = phi.CloneChannelsSlice(18, 27)
-	}
-
-	if *negate {
-		vec.Copy(phi.Vec(), vec.Scale(-1, phi.Vec()))
+	var weights hog.WeightSet
+	switch name {
+	case "pos":
+		weights = hog.Pos
+	case "neg":
+		weights = hog.Neg
+	case "abs":
+		weights = hog.Abs
+	default:
+		weights = hog.Signed
 	}
 
 	fmt.Println("Rendering visualization...")
-	var pic image.Image
-	if *signed {
-		pic = hog.SignedImage(phi, *cellSize)
-	} else {
-		pic = hog.Image(phi, *cellSize)
-	}
+	pic := hog.Vis(feat, weights, cell)
 
 	fmt.Println("Saving image...")
 	if err := saveImage(output, pic); err != nil {

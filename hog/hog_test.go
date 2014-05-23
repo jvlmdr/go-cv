@@ -1,8 +1,6 @@
 package hog
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"image"
 	"image/draw"
 	_ "image/jpeg"
@@ -10,6 +8,8 @@ import (
 	"math"
 	"os"
 	"testing"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 func TestHOG_VersusFGMR(t *testing.T) {

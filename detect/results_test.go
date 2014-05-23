@@ -1,11 +1,11 @@
 package detect
 
 import (
-	"github.com/jackvalmadre/go-ml"
-
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/jackvalmadre/go-ml"
 )
 
 func TestResultSet_Enum(t *testing.T) {

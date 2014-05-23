@@ -8,9 +8,9 @@ package hog
 import "C"
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"unsafe"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 const Orientations = 9

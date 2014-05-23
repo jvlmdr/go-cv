@@ -1,11 +1,11 @@
 package slide
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"container/list"
 	"image"
 	"sort"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 // Find detections which do not intersect

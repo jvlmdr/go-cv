@@ -1,11 +1,12 @@
 package featpyr
 
 import (
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"image"
 	"log"
+
+	"github.com/jackvalmadre/go-cv/feat"
+	"github.com/jackvalmadre/go-cv/imgpyr"
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 // Level zero is the original image.
@@ -16,6 +17,24 @@ type Pyramid struct {
 	Feats []*rimg64.Multi
 	// Integer downsample rate of features.
 	Rate int
+	// Margin which was added around each image before computing features.
+	Margin feat.Margin
+}
+
+// Constructs a feature pyramid.
+// Extends each level by a margin before computing features.
+func NewPad(images *imgpyr.Pyramid, phi feat.Transform, pad feat.Pad) *Pyramid {
+	feats := make([]*rimg64.Multi, len(images.Levels))
+	for i, im := range images.Levels {
+		feats[i] = feat.ApplyPad(phi, im, pad)
+	}
+	log.Print("finished computing feature transform: ", len(images.Levels))
+	return &Pyramid{images, feats, phi.Rate(), pad.Margin}
+}
+
+// Constructs a feature pyramid.
+func New(images *imgpyr.Pyramid, phi feat.Transform) *Pyramid {
+	return NewPad(images, phi, feat.NoPad())
 }
 
 // Retrieves the pixel image.
@@ -29,27 +48,15 @@ func (pyr *Pyramid) Scale(i int) float64 {
 	return pyr.Images.Scales.At(i)
 }
 
+// Converts a point in the feature pyramid to a point in the image.
 func (pyr *Pyramid) ToImagePoint(pt imgpyr.Point) image.Point {
-	return pointAt(pt, pyr.Images.Scales, pyr.Rate)
+	return vec(pt.Pos.Mul(pyr.Rate)).Mul(1 / pyr.Scale(pt.Level)).Round()
 }
 
-// Given point in feature pyramid and rectangle in pixel co-ords.
-func (pyr *Pyramid) ToImageRect(min imgpyr.Point, interior image.Rectangle) image.Rectangle {
-	return rectAt(min, pyr.Images.Scales, pyr.Rate, interior)
-}
-
-// Reserve name "Feat" in case this eventually becomes a struct.
-
-// Transforms a floating-point color or gray image into a feature image.
-type FeatFunc func(x *rimg64.Multi) *rimg64.Multi
-
-// Constructs a feature pyramid.
-// Level i has dimension (width, height) * scales[i].
-func New(images *imgpyr.Pyramid, fn FeatFunc, rate int) *Pyramid {
-	feats := make([]*rimg64.Multi, len(images.Levels))
-	for i, x := range images.Levels {
-		feats[i] = fn(rimg64.FromColor(x))
-	}
-	log.Print("finished computing feature transform: ", len(images.Levels))
-	return &Pyramid{images, feats, rate}
+// Converts a point in the feature pyramid to a rectangle in the image.
+func (pyr *Pyramid) ToImageRect(pt imgpyr.Point, interior image.Rectangle) image.Rectangle {
+	// Translate interior by position (scaled by rate) and subtract margin offset.
+	rect := interior.Add(pt.Pos.Mul(pyr.Rate)).Sub(pyr.Margin.TopLeft())
+	// Scale rectangle.
+	return scaleRect(1/pyr.Scale(pt.Level), rect)
 }

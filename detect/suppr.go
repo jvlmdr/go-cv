@@ -28,12 +28,27 @@ func area(r image.Rectangle) int {
 	return s.X * s.Y
 }
 
-// Returns a list of indices to keep.
+// Performs non-max suppression on a sorted list of detections.
+//
+// The limit on the number of detections to keep is ignored if non-positive.
+// Overlap criteria are evaluated exhaustively.
+//
+// Example overlap criterion:
 //
 //	// Two rectangles overlap if their IOU exceeds 0.5.
-//	overlap := func(a, b image.Rectangle) bool { return detect.IOU(a, b) >= 0.5 }
-//	Suppress(dets, maxnum, overlap)
-func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []int {
+//	overlap := func(a, b image.Rectangle) bool { return detect.IOU(a, b) > 0.5 }
+//	dets = detect.Suppress(dets, 0, overlap)
+func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []Det {
+	inds := SuppressSet(dets, maxnum, overlap)
+	subset := make([]Det, len(inds))
+	for i, ind := range inds {
+		subset[i] = dets[ind]
+	}
+	return subset
+}
+
+// Returns a list of indices to keep.
+func SuppressSet(dets []Det, maxnum int, overlap OverlapFunc) []int {
 	if !sort.IsSorted(detsByScoreDesc(dets)) {
 		panic("not sorted")
 	}
@@ -44,19 +59,18 @@ func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []int {
 	}
 	// Select best detection, remove those which overlap with it.
 	var subset []int
-	for rem.Len() > 0 && (maxnum <= 0 || len(subset) < maxnum) {
+	for rem.Len() > 0 && !(maxnum > 0 && len(subset) >= maxnum) {
 		subset = append(subset, pop(rem, dets, overlap))
 	}
 	return subset
 }
 
-func SuppressDets(dets []Det, maxnum int, overlap OverlapFunc) []Det {
-	inds := Suppress(dets, maxnum, overlap)
-	subset := make([]Det, len(inds))
-	for i, ind := range inds {
-		subset[i] = dets[ind]
-	}
-	return subset
+type SupprFilter struct {
+	// Maximum number of detections to return.
+	// Ignored if non-negative.
+	MaxNum int
+	// Function which tests whether two rectangles overlap.
+	Overlap OverlapFunc
 }
 
 func pop(rem *list.List, dets []Det, overlap OverlapFunc) int {

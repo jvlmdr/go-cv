@@ -1,12 +1,12 @@
 package slide
 
 import (
-	"github.com/jackvalmadre/go-cv/rimg64"
-
 	"image"
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/jackvalmadre/go-cv/rimg64"
 )
 
 func TestCorr(t *testing.T) {

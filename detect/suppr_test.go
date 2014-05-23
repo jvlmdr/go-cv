@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSuppressDets(t *testing.T) {
+func TestSuppress(t *testing.T) {
 	cases := []struct {
 		MaxInter float64
 		MaxNum   int
@@ -218,7 +218,10 @@ func TestSuppressDets(t *testing.T) {
 	}
 
 	for _, x := range cases {
-		out := SuppressDets(x.In, x.MaxNum, x.MaxInter)
+		// Test if existing detection a covers candidate detection b.
+		overlap := func(a, b image.Rectangle) bool { return Cover(b, a) > x.MaxInter }
+
+		out := Suppress(x.In, x.MaxNum, overlap)
 		if len(out) != len(x.Out) {
 			t.Error("different length")
 			t.Log(x)
