@@ -1,12 +1,6 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv/featpyr"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/nfnt/resize"
-
 	"encoding/gob"
 	"encoding/json"
 	"flag"
@@ -18,26 +12,43 @@ import (
 	"math"
 	"os"
 	"path"
+
+	"github.com/jackvalmadre/go-cv/detect"
+	"github.com/jackvalmadre/go-cv/feat"
+	"github.com/jackvalmadre/go-cv/featpyr"
+	"github.com/jackvalmadre/go-cv/hog"
+	"github.com/jackvalmadre/go-cv/imgpyr"
+	"github.com/jackvalmadre/go-cv/imsamp"
+	"github.com/nfnt/resize"
 )
 
+func init() {
+	imgpyr.DefaultInterp = resize.Bilinear
+}
+
+func usage() {
+	fmt.Fprintln(os.Stderr, "Usage:")
+	fmt.Fprintln(os.Stderr, path.Base(os.Args[0]), "[flags] tmpl.gob image.(jpg|png) detections.json")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "Runs a detector on an image with non-maximum suppression.")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "Options:")
+	flag.PrintDefaults()
+	fmt.Fprintln(os.Stderr)
+}
+
 func main() {
-	sbin := flag.Int("sbin", 4, "Spatial binning parameter to HOG")
-	step := flag.Float64("pyr-step", 1.2, "Geometric step to use in image pyramid")
-	maxinter := flag.Float64("max-intersect", 0.5, "Maximum overlap of detections. Zero means detections can't overlap at all, one means they can overlap entirely.")
-	localmax := flag.Bool("local-max", true, "Detections cannot score less than a neighbor")
-	width := flag.Int("tmpl-pix-width", 0, "Width of template in pixels")
-	height := flag.Int("tmpl-pix-height", 0, "Height of template in pixels")
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage:")
-		fmt.Fprintln(os.Stderr, path.Base(os.Args[0]), "[flags] tmpl.gob image.(jpg|png) detections.json")
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "Runs a detector on an image with non-maximum suppression.")
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "Options:")
-		flag.PrintDefaults()
-		fmt.Fprintln(os.Stderr)
-	}
+	var (
+		sbin     = flag.Int("sbin", 4, "Spatial binning parameter to HOG")
+		margin   = flag.Int("margin", 0, "Margin to add around images before computing features")
+		step     = flag.Float64("pyr-step", 1.1, "Geometric step to use in image pyramid")
+		maxinter = flag.Float64("max-intersect", 0.5, "Maximum overlap of detections. Zero means detections can't overlap at all, one means they can overlap entirely.")
+		localmax = flag.Bool("local-max", true, "Detections cannot score less than a neighbor")
+	)
+
+	flag.Usage = usage
 	flag.Parse()
+
 	if flag.NArg() != 3 {
 		flag.Usage()
 		os.Exit(1)
@@ -48,42 +59,46 @@ func main() {
 		detsFile = flag.Arg(2)
 	)
 
-	if *width <= 0 || *height <= 0 {
-		log.Fatal("width and height must be positive")
-	}
-	pixsize := image.Pt(*width, *height)
-
 	// Load image.
 	im, err := loadImage(imFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Construct pyramid.
-	fn := func(x *rimg64.Multi) *rimg64.Multi {
-		return hog.HOG(x, FGMRConfig(*sbin))
-	}
-	scales := imgpyr.Scales(im.Bounds().Size(), image.Pt(64, 64), *step)
-	pyr := featpyr.New(im, scales, fn, *sbin)
+	scales := imgpyr.Scales(im.Bounds().Size(), image.Pt(24, 24), *step)
+	phi := hog.Transform{hog.FGMRConfig(*sbin)}
+	pad := feat.Pad{feat.Margin{*margin, *margin, *margin, *margin}, imsamp.Continue}
+	pyr := featpyr.NewPad(imgpyr.New(im, scales), phi, pad)
 
 	// Load template.
-	var tmpl *rimg64.Multi
+	var tmpl *detect.FeatTmpl
 	if err := loadGob(tmplFile, &tmpl); err != nil {
 		log.Fatal(err)
 	}
 
-	imgpyr.DefaultInterp = resize.Bilinear
-	opts := featpyr.DetectOpts{MaxInter: *maxinter, MinScore: math.Inf(-1), LocalMax: *localmax}
-	dets := featpyr.Detect(pyr, tmpl, pixsize, opts)
+	detopts := detect.DetFilter{
+		LocalMax: *localmax,
+		MinScore: math.Inf(-1),
+	}
+	// Use intersection-over-union criteria for non-max suppression.
+	overlap := func(a, b image.Rectangle) bool {
+		return detect.IOU(a, b) > *maxinter
+	}
+	suppropts := detect.SupprFilter{
+		MaxNum:  0,
+		Overlap: overlap,
+	}
+	dets := detect.Pyramid(pyr, tmpl, detopts, suppropts)
 
 	if err := saveJSON(detsFile, dets); err != nil {
 		log.Fatal(err)
 	}
 
-	//	for i, det := range dets {
-	//		r := det.Pos
-	//		cmd := fmt.Sprintf("rectangle %d,%d %d,%d", r.Min.X, r.Min.Y, r.Max.X, r.Max.Y)
-	//		fmt.Printf("convert %s -fill none -stroke white -draw '%s' det_%06d.jpg\n", imFile, cmd, i)
-	//	}
+	for i, det := range dets {
+		r := det.Rect
+		cmd := fmt.Sprintf("rectangle %d,%d %d,%d", r.Min.X, r.Min.Y, r.Max.X, r.Max.Y)
+		fmt.Printf("convert %s -fill none -stroke white -draw '%s' det_%06d.jpg\n", imFile, cmd, i)
+	}
 }
 
 func loadImage(fname string) (image.Image, error) {
