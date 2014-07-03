@@ -6,8 +6,18 @@ import (
 )
 
 type PadRect struct {
+	// Size of region.
 	Size image.Point
-	Int  image.Rectangle
+	// Interior of region.
+	Int image.Rectangle
+}
+
+// Creates a padded rectangle whose interior is size with uniform padding on all sides.
+func Pad(size image.Point, pad int) PadRect {
+	return PadRect{
+		image.Pt(size.X+2*pad, size.Y+2*pad),
+		image.Rectangle{image.ZP, size}.Add(image.Pt(pad, pad)),
+	}
 }
 
 func (p PadRect) Left() int   { return p.Int.Min.X }
