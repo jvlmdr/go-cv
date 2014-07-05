@@ -55,9 +55,12 @@ func FitRect(orig image.Rectangle, target PadRect, mode string) (scale float64, 
 func SetAspect(w, h, aspect float64, mode string) (float64, float64) {
 	switch mode {
 	case "area":
-		// height^2 = width * height / aspect
+		// aspect = width / height
+		// width = height * aspect
 		// width^2 = width * height * aspect
-		w, h = math.Sqrt(w*h/aspect), math.Sqrt(w*h*aspect)
+		// height = width / aspect
+		// height^2 = width * height / aspect
+		w, h = math.Sqrt(w*h*aspect), math.Sqrt(w*h/aspect)
 	case "width":
 		// Set height from width.
 		h = w / aspect
