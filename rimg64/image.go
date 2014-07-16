@@ -70,6 +70,21 @@ func ToGray(f *Image) *image.Gray {
 	return g
 }
 
+// Converts a color image to a 3-channel vector-valued image.
+func FromGray(g image.Image) *Image {
+	size := g.Bounds().Size()
+	off := g.Bounds().Min
+	f := New(size.X, size.Y)
+	for x := 0; x < size.X; x++ {
+		for y := 0; y < size.Y; y++ {
+			v := color.Gray16Model.Convert(g.At(x+off.X, y+off.Y))
+			c, _, _, _ := v.RGBA()
+			f.Set(x, y, float64(c)/float64(0xFFFF))
+		}
+	}
+	return f
+}
+
 // Returns the sum of two images.
 // Does not modify either input.
 func (f *Image) Plus(g *Image) *Image {
