@@ -70,7 +70,7 @@ func ToGray(f *Image) *image.Gray {
 	return g
 }
 
-// Converts a color image to a 3-channel vector-valued image.
+// Converts the image to a real-valued gray image with values in [0, 1].
 func FromGray(g image.Image) *Image {
 	size := g.Bounds().Size()
 	off := g.Bounds().Min
