@@ -7,7 +7,7 @@ import (
 	"github.com/gonum/floats"
 )
 
-// Describes a real-valued image.
+// Image describes a real-valued image.
 type Image struct {
 	// Element (x, y) at index x*Height + y.
 	Elems  []float64
@@ -15,20 +15,23 @@ type Image struct {
 	Height int
 }
 
-// Allocates an image of zeros.
+// New allocates an image of zeros.
 func New(width, height int) *Image {
 	pixels := make([]float64, width*height)
 	return &Image{pixels, width, height}
 }
 
+// Size returns the dimensions of the image.
 func (f *Image) Size() image.Point {
 	return image.Pt(f.Width, f.Height)
 }
 
+// At retrieves an element of the image.
 func (f *Image) At(x, y int) float64 {
 	return f.Elems[x*f.Height+y]
 }
 
+// Set modifies an element of the image.
 func (f *Image) Set(x, y int, v float64) {
 	f.Elems[f.index(x, y)] = v
 }
@@ -37,14 +40,14 @@ func (f *Image) index(x, y int) int {
 	return x*f.Height + y
 }
 
-// Creates a copy of the image.
+// Clone creates a copy of the image.
 func (f *Image) Clone() *Image {
 	g := New(f.Width, f.Height)
 	copy(g.Elems, f.Elems)
 	return g
 }
 
-// Clones an image from part of a larger image.
+// SubImage clones part of an image.
 func (f *Image) SubImage(r image.Rectangle) *Image {
 	g := New(r.Dx(), r.Dy())
 	for i := 0; i < g.Width; i++ {
@@ -55,7 +58,7 @@ func (f *Image) SubImage(r image.Rectangle) *Image {
 	return g
 }
 
-// Converts to an 8-bit integer gray image.
+// ToGray converts the image to an 8-bit integer gray image.
 // Maps [0, 1] to [0, 255].
 // Caps to [0, 255].
 func ToGray(f *Image) *image.Gray {
@@ -70,7 +73,7 @@ func ToGray(f *Image) *image.Gray {
 	return g
 }
 
-// Converts the image to a real-valued gray image with values in [0, 1].
+// FromGray converts the image to a real-valued gray image with values in [0, 1].
 func FromGray(g image.Image) *Image {
 	size := g.Bounds().Size()
 	off := g.Bounds().Min
@@ -85,7 +88,7 @@ func FromGray(g image.Image) *Image {
 	return f
 }
 
-// Returns the sum of two images.
+// Plus computes the sum of two images.
 // Does not modify either input.
 func (f *Image) Plus(g *Image) *Image {
 	dst := New(f.Width, f.Height)
@@ -93,7 +96,7 @@ func (f *Image) Plus(g *Image) *Image {
 	return dst
 }
 
-// Returns the difference of two images.
+// Minus computes the difference between two images.
 // Does not modify either input.
 func (f *Image) Minus(g *Image) *Image {
 	dst := New(f.Width, f.Height)
@@ -101,7 +104,8 @@ func (f *Image) Minus(g *Image) *Image {
 	return dst
 }
 
-// Returns a scaled copy of an image.
+// Scale computes the product of an image with a scalar.
+// Does not modify the input.
 func (f *Image) Scale(alpha float64) *Image {
 	dst := New(f.Width, f.Height)
 	floats.AddScaled(dst.Elems, alpha, f.Elems)

@@ -6,7 +6,7 @@ import (
 	"github.com/gonum/floats"
 )
 
-// Describe a real-vector-valued image.
+// Multi describes a multi-channel (real vector valued) image.
 type Multi struct {
 	// Element (x, y, d) at index (x*f.Height + y)*f.Channels + d.
 	Elems    []float64
@@ -15,20 +15,23 @@ type Multi struct {
 	Channels int
 }
 
-// Allocates an image of zeros.
+// NewMulti allocates a multi-channel image of zeros.
 func NewMulti(width, height, channels int) *Multi {
 	pixels := make([]float64, width*height*channels)
 	return &Multi{pixels, width, height, channels}
 }
 
+// Size returns the width and height of the image.
 func (f *Multi) Size() image.Point {
 	return image.Pt(f.Width, f.Height)
 }
 
+// At retrieves an element of the image.
 func (f *Multi) At(x, y, d int) float64 {
 	return f.Elems[f.index(x, y, d)]
 }
 
+// Set modifies an element of the image.
 func (f *Multi) Set(x, y, d int, v float64) {
 	f.Elems[f.index(x, y, d)] = v
 }
@@ -37,14 +40,15 @@ func (f *Multi) index(x, y, d int) int {
 	return (x*f.Height+y)*f.Channels + d
 }
 
-// Creates a copy of the image.
+// Clone creates a copy of the image.
 func (f *Multi) Clone() *Multi {
 	g := NewMulti(f.Width, f.Height, f.Channels)
 	copy(g.Elems, f.Elems)
 	return g
 }
 
-// Clones the value of all channels at a point.
+// Pixel retrieves all channels at a given position in the image.
+// The returned slice does not reference the elements of the original image.
 func (f *Multi) Pixel(x, y int) []float64 {
 	v := make([]float64, f.Channels)
 	for d := range v {
@@ -53,14 +57,15 @@ func (f *Multi) Pixel(x, y int) []float64 {
 	return v
 }
 
-// Overwrites the value of all channels at a point.
+// SetPixel modifies all channels at a given position in the image.
 func (f *Multi) SetPixel(x, y int, v []float64) {
 	for d := 0; d < f.Channels; d++ {
 		f.Set(x, y, d, v[d])
 	}
 }
 
-// Clones one channel of a vector image.
+// Channel retrieves all elements in one channel as a real-valued image.
+// The returned image does not reference the elements of the original image.
 func (f *Multi) Channel(d int) *Image {
 	g := New(f.Width, f.Height)
 	for x := 0; x < f.Width; x++ {
@@ -71,7 +76,7 @@ func (f *Multi) Channel(d int) *Image {
 	return g
 }
 
-// Overwrites one channel with a scalar image.
+// SetChannel modifies all elements in one channel.
 func (f *Multi) SetChannel(d int, g *Image) {
 	for x := 0; x < f.Width; x++ {
 		for y := 0; y < f.Height; y++ {
@@ -80,7 +85,7 @@ func (f *Multi) SetChannel(d int, g *Image) {
 	}
 }
 
-// Clones an image from part of a larger image.
+// SubImage clones part of an image.
 func (f *Multi) SubImage(r image.Rectangle) *Multi {
 	g := NewMulti(r.Dx(), r.Dy(), f.Channels)
 	for i := 0; i < g.Width; i++ {
@@ -93,7 +98,7 @@ func (f *Multi) SubImage(r image.Rectangle) *Multi {
 	return g
 }
 
-// Converts a color image to a 3-channel vector-valued image.
+// FromColor converts a color image into a 3-channel real-valued image.
 func FromColor(g image.Image) *Multi {
 	size := g.Bounds().Size()
 	off := g.Bounds().Min
@@ -110,7 +115,7 @@ func FromColor(g image.Image) *Multi {
 	return f
 }
 
-// Returns the sum of two images.
+// Plus computes the sum of two images.
 // Does not modify either input.
 func (f *Multi) Plus(g *Multi) *Multi {
 	dst := NewMulti(f.Width, f.Height, f.Channels)
@@ -118,7 +123,7 @@ func (f *Multi) Plus(g *Multi) *Multi {
 	return dst
 }
 
-// Returns the difference of two images.
+// Minus computes the difference between two images.
 // Does not modify either input.
 func (f *Multi) Minus(g *Multi) *Multi {
 	dst := NewMulti(f.Width, f.Height, f.Channels)
@@ -126,7 +131,8 @@ func (f *Multi) Minus(g *Multi) *Multi {
 	return dst
 }
 
-// Returns a scaled copy of an image.
+// Scale computes the product of an image with a scalar.
+// Does not modify the input.
 func (f *Multi) Scale(alpha float64) *Multi {
 	dst := NewMulti(f.Width, f.Height, f.Channels)
 	floats.AddScaled(dst.Elems, alpha, f.Elems)
