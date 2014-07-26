@@ -5,8 +5,8 @@ import (
 	"image"
 	"math/cmplx"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-fftw/fftw"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-fftw/fftw"
 )
 
 // Performs correlation of multi-channel images.

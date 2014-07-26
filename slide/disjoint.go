@@ -5,7 +5,7 @@ import (
 	"image"
 	"sort"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 // Find detections which do not intersect

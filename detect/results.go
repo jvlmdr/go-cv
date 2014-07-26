@@ -3,7 +3,7 @@ package detect
 import (
 	"sort"
 
-	"github.com/jackvalmadre/go-ml"
+	"github.com/jvlmdr/go-ml"
 )
 
 // Can be used to generate an ROC curve.

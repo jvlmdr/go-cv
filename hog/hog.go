@@ -4,7 +4,7 @@ import (
 	"image"
 	"math"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 type Transform struct {

@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func TestHOG_VersusFGMR(t *testing.T) {

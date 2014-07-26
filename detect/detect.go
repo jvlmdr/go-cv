@@ -4,9 +4,9 @@ import (
 	"image"
 	"sort"
 
-	"github.com/jackvalmadre/go-cv/feat"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-cv/slide"
+	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/slide"
 )
 
 // Performs detection and non-max suppression.

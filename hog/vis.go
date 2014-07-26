@@ -7,8 +7,8 @@ import (
 	"math"
 
 	"code.google.com/p/draw2d/draw2d"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/lin-go/vec"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/lin-go/vec"
 )
 
 type WeightSet int

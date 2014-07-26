@@ -10,7 +10,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 const Orientations = 9

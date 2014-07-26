@@ -4,8 +4,8 @@ import (
 	"image"
 	"math/cmplx"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-fftw/fftw"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-fftw/fftw"
 )
 
 // Returns the number of positions such that the template g lies entirely inside the image f.

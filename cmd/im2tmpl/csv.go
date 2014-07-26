@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func loadImageCSV(fname string) (*rimg64.Multi, error) {

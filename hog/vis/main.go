@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv"
-	"github.com/jackvalmadre/go-cv/hog"
+	"github.com/jvlmdr/go-cv"
+	"github.com/jvlmdr/go-cv/hog"
 
 	"flag"
 	"fmt"

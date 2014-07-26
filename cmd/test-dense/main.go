@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv/detect"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-cv/slide"
-	"github.com/jackvalmadre/go-ml"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/slide"
+	"github.com/jvlmdr/go-ml"
 
 	"bufio"
 	"encoding/gob"

@@ -6,14 +6,14 @@ import (
 	"math"
 	"path"
 
-	"github.com/jackvalmadre/go-cv/dataset/inria"
-	"github.com/jackvalmadre/go-cv/detect"
-	"github.com/jackvalmadre/go-cv/feat"
-	"github.com/jackvalmadre/go-cv/featpyr"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/imsamp"
-	"github.com/jackvalmadre/go-grideng/grideng"
+	"github.com/jvlmdr/go-cv/dataset/inria"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featpyr"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/imsamp"
+	"github.com/jvlmdr/go-grideng/grideng"
 )
 
 type ValidateArgs struct {

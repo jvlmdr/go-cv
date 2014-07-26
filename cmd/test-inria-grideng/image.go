@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/rimg64"
 
 	"image"
 	_ "image/gif"

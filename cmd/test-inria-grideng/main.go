@@ -8,11 +8,11 @@ import (
 	"os"
 	"path"
 
-	"github.com/jackvalmadre/go-cv/detect"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-grideng/grideng"
-	"github.com/jackvalmadre/go-ml"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-grideng/grideng"
+	"github.com/jvlmdr/go-ml"
 	"github.com/nfnt/resize"
 )
 

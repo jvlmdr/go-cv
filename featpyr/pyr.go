@@ -4,9 +4,9 @@ import (
 	"image"
 	"log"
 
-	"github.com/jackvalmadre/go-cv/feat"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 // Level zero is the original image.

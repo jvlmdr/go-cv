@@ -3,7 +3,7 @@ package hog
 import (
 	"math"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func min(a, b int) int {

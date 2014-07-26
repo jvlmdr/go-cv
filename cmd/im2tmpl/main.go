@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/jackvalmadre/go-cv/detect"
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func usage() {

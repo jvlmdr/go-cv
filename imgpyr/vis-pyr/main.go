@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/imgpyr"
 
 	"flag"
 	"fmt"

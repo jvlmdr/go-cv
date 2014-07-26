@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/slide"
+	"github.com/jvlmdr/go-cv"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/slide"
 	"github.com/nfnt/resize"
 
 	"encoding/gob"

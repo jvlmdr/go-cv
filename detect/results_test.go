@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jackvalmadre/go-ml"
+	"github.com/jvlmdr/go-ml"
 )
 
 func TestResultSet_Enum(t *testing.T) {

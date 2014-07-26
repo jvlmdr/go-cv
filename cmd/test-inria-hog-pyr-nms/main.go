@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/jackvalmadre/go-cv/detect"
-	"github.com/jackvalmadre/go-cv/featpyr"
-	"github.com/jackvalmadre/go-cv/hog"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/rimg64"
-	"github.com/jackvalmadre/go-ml"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-cv/featpyr"
+	"github.com/jvlmdr/go-cv/hog"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-ml"
 	"github.com/nfnt/resize"
 
 	"bufio"

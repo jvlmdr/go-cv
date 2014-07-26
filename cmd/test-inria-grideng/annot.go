@@ -3,7 +3,7 @@ package main
 import (
 	"path"
 
-	"github.com/jackvalmadre/go-cv/dataset/inria"
+	"github.com/jvlmdr/go-cv/dataset/inria"
 )
 
 func loadAnnots(fname, dir string) ([]inria.Annot, error) {

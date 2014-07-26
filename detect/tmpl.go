@@ -3,7 +3,7 @@ package detect
 import (
 	"image"
 
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 type FeatTmpl struct {

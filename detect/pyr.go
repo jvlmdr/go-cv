@@ -1,9 +1,9 @@
 package detect
 
 import (
-	"github.com/jackvalmadre/go-cv/featpyr"
-	"github.com/jackvalmadre/go-cv/imgpyr"
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/featpyr"
+	"github.com/jvlmdr/go-cv/imgpyr"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 // Performs detection and non-max suppression.

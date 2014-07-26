@@ -3,8 +3,8 @@ package feat
 import (
 	"image"
 
-	"github.com/jackvalmadre/go-cv/imsamp"
-	"github.com/jackvalmadre/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/imsamp"
+	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 // Describes a feature transform.
