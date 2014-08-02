@@ -59,15 +59,30 @@ func (f *Image) SubImage(r image.Rectangle) *Image {
 }
 
 // ToGray converts the image to an 8-bit integer gray image.
-// Maps [0, 1] to [0, 255].
-// Caps to [0, 255].
+// Maps [0, 1] to [0, math.MaxUint8].
+// Caps to [0, math.MaxUint8].
 func ToGray(f *Image) *image.Gray {
 	g := image.NewGray(image.Rect(0, 0, f.Width, f.Height))
 	for x := 0; x < f.Width; x++ {
 		for y := 0; y < f.Height; y++ {
-			v := round(255 * f.At(x, y))
-			v = min(255, max(0, v))
+			v := round(math.MaxUint8 * f.At(x, y))
+			v = min(math.MaxUint8, max(0, v))
 			g.SetGray(x, y, color.Gray{uint8(v)})
+		}
+	}
+	return g
+}
+
+// ToGray16 converts the image to a 16-bit integer gray image.
+// Maps [0, 1] to [0, math.MaxUint16].
+// Caps to [0, math.MaxUint16].
+func ToGray16(f *Image) *image.Gray16 {
+	g := image.NewGray16(image.Rect(0, 0, f.Width, f.Height))
+	for x := 0; x < f.Width; x++ {
+		for y := 0; y < f.Height; y++ {
+			v := round(math.MaxUint16 * f.At(x, y))
+			v = min(math.MaxUint16, max(0, v))
+			g.SetGray16(x, y, color.Gray16{uint16(v)})
 		}
 	}
 	return g
