@@ -3,6 +3,7 @@ package rimg64
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/gonum/floats"
 )
