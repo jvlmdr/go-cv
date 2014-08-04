@@ -7,6 +7,11 @@ import (
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
+func init() {
+	Register("gray", Gray)
+	Register("color", Color)
+}
+
 type ApplyFunc func(image.Image) *rimg64.Multi
 
 func Func(f ApplyFunc, rate int) Transform {
