@@ -127,3 +127,25 @@ func (f *Image) Scale(alpha float64) *Image {
 	floats.AddScaled(dst.Elems, alpha, f.Elems)
 	return dst
 }
+
+// FromRows creates a new image from a list of rows.
+// Panics if rows are varying length.
+// Returns nil if no rows are provided.
+// Returns empty image if all rows are empty.
+func FromRows(rows [][]float64) *Image {
+	height := len(rows)
+	if height == 0 {
+		return nil
+	}
+	width := len(rows[0])
+	f := New(width, height)
+	for j, row := range rows {
+		if len(row) != width {
+			panic("rows are not same length")
+		}
+		for i, x := range row {
+			f.Set(i, j, x)
+		}
+	}
+	return f
+}
