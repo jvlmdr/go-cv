@@ -2,6 +2,7 @@ package detect
 
 import (
 	"image"
+	"math"
 	"sort"
 )
 
@@ -66,6 +67,13 @@ func Sort(dets []Det) {
 
 type detsByScoreDesc []Det
 
-func (s detsByScoreDesc) Len() int           { return len(s) }
-func (s detsByScoreDesc) Less(i, j int) bool { return s[i].Score > s[j].Score }
-func (s detsByScoreDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s detsByScoreDesc) Len() int      { return len(s) }
+func (s detsByScoreDesc) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s detsByScoreDesc) Less(i, j int) bool {
+	// Slightly inefficient to test this here.
+	if math.IsNaN(s[i].Score) || math.IsNaN(s[j].Score) {
+		panic("cannot sort scores: NaN")
+	}
+	return s[i].Score > s[j].Score
+}
