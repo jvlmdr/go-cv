@@ -3,6 +3,7 @@ package slide
 import (
 	"fmt"
 	"image"
+	"log"
 	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
@@ -17,6 +18,10 @@ func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
 		panic(err)
 	}
 
+	log.Printf(
+		"slide %dx%dx%d template over %dx%dx%d image",
+		g.Width, g.Height, g.Channels, f.Width, f.Height, f.Channels,
+	)
 	size := outputSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.X == 0 || size.Y == 0 {

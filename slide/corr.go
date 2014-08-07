@@ -2,6 +2,7 @@ package slide
 
 import (
 	"image"
+	"log"
 	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
@@ -33,6 +34,9 @@ func useFourier(f, g image.Point) bool {
 //
 // Automatically selects between naive and Fourier-domain convolution.
 func Corr(f, g *rimg64.Image) *rimg64.Image {
+	log.Printf("slide %dx%d template over %dx%d image",
+		g.Width, g.Height, f.Width, f.Height,
+	)
 	size := outputSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {

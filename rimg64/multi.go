@@ -1,6 +1,7 @@
 package rimg64
 
 import (
+	"fmt"
 	"image"
 
 	"github.com/gonum/floats"
@@ -58,7 +59,11 @@ func (f *Multi) Pixel(x, y int) []float64 {
 }
 
 // SetPixel modifies all channels at a given position in the image.
+// Panics if the number of elements does not match the number of channels.
 func (f *Multi) SetPixel(x, y int, v []float64) {
+	if len(v) != f.Channels {
+		panic(fmt.Sprintf("different number of channels: image %d, vector %d", f.Channels, len(v)))
+	}
 	for d := 0; d < f.Channels; d++ {
 		f.Set(x, y, d, v[d])
 	}
@@ -77,7 +82,11 @@ func (f *Multi) Channel(d int) *Image {
 }
 
 // SetChannel modifies all elements in one channel.
+// Panics if the sizes do not match.
 func (f *Multi) SetChannel(d int, g *Image) {
+	if !f.Size().Eq(g.Size()) {
+		panic(fmt.Sprintf("different size: image %v, channel %v", f.Size(), g.Size()))
+	}
 	for x := 0; x < f.Width; x++ {
 		for y := 0; y < f.Height; y++ {
 			f.Set(x, y, d, g.At(x, y))
