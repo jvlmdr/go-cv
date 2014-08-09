@@ -4,8 +4,13 @@ import (
 	"image"
 	"math"
 
+	"github.com/jvlmdr/go-cv/feat"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
+
+func init() {
+	feat.Register("hog", func() feat.Transform { return new(Transform) })
+}
 
 type Transform struct {
 	Conf Config
