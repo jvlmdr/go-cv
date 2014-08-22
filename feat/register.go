@@ -11,18 +11,21 @@ func Register(name string, create func() Transform) {
 	Transforms[name] = create
 }
 
-type Unmarshaler struct {
-	Name string
-	Spec Transform
+type Marshaler struct {
+	Name      string
+	Transform `json:"Spec"`
 }
 
-func (m *Unmarshaler) UnmarshalJSON(data []byte) error {
+func (m *Marshaler) UnmarshalJSON(data []byte) error {
 	var x struct {
 		Name string
 		Spec json.RawMessage
 	}
 	if err := json.Unmarshal(data, &x); err != nil {
 		return err
+	}
+	if len(x.Name) == 0 {
+		return fmt.Errorf("no feature name specified")
 	}
 	create, ok := Transforms[x.Name]
 	if !ok {
@@ -33,6 +36,6 @@ func (m *Unmarshaler) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	m.Name = x.Name
-	m.Spec = t
+	m.Transform = t
 	return nil
 }
