@@ -33,7 +33,7 @@ func TestHOG_VersusFGMR(t *testing.T) {
 	ref := fgmr(rimg64.FromColor(inside), sbin)
 	f := HOG(rimg64.FromColor(im), FGMRConfig(sbin))
 
-	const prec = 1e-9
+	const prec = 1e-5
 	// Skip first and last element. (Not using cell outside image.)
 	for x := 1; x < f.Width-1; x++ {
 		for y := 1; y < f.Height-1; y++ {

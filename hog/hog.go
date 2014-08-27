@@ -37,6 +37,15 @@ type Config struct {
 	Angles int
 	// Number of pixels to one side of a square cell.
 	CellSize int
+
+	// Do not include contrast-sensitive features.
+	NoContrastVar bool
+	// Do not include contrast-insensitive features.
+	NoContrastInvar bool
+	// Do not include texture features.
+	NoTexture bool
+	// Do not let gradient intensities be less than some value.
+	NoClip bool
 }
 
 type point struct {
@@ -87,7 +96,16 @@ func adjSum(f *rimg64.Image, x1, y1, x2, y2 int) float64 {
 
 func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 	const eps = 0.0001
-	channels := 3*conf.Angles + 4
+	var channels int
+	if !conf.NoContrastVar {
+		channels += 2 * conf.Angles
+	}
+	if !conf.NoContrastInvar {
+		channels += conf.Angles
+	}
+	if !conf.NoTexture {
+		channels += 4
+	}
 
 	// Leave a one-pixel border to compute derivatives.
 	inside := image.Rectangle{image.ZP, f.Size()}.Inset(1)
@@ -162,41 +180,60 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 			n[1] = 1 / math.Sqrt(adjSum(norm, a, b, a+1, b-1)+eps)
 			n[2] = 1 / math.Sqrt(adjSum(norm, a, b, a-1, b+1)+eps)
 			n[3] = 1 / math.Sqrt(adjSum(norm, a, b, a-1, b-1)+eps)
+			var off int
 
-			// Directed edges.
-			for d := 0; d < 2*conf.Angles; d++ {
-				h := hist.At(a, b, d)
-				var sum float64
-				for _, ni := range n {
-					sum += math.Min(h*ni, 0.2)
+			// Contrast-sensitive features.
+			if !conf.NoContrastVar {
+				for d := 0; d < 2*conf.Angles; d++ {
+					h := hist.At(a, b, d)
+					var sum float64
+					for _, ni := range n {
+						val := h * ni
+						if !conf.NoClip {
+							val = math.Min(val, 0.2)
+						}
+						sum += val
+					}
+					feat.Set(x, y, off+d, sum/2)
 				}
-				feat.Set(x, y, d, sum/2)
+				off += 2 * conf.Angles
 			}
 
-			// Un-directed edges.
-			off := 2 * conf.Angles
-			for d := 0; d < conf.Angles; d++ {
-				h := hist.At(a, b, d) + hist.At(a, b, conf.Angles+d)
-				var sum float64
-				for _, ni := range n {
-					sum += math.Min(h*ni, 0.2)
+			// Contrast-insensitive features.
+			if !conf.NoContrastInvar {
+				for d := 0; d < conf.Angles; d++ {
+					h := hist.At(a, b, d) + hist.At(a, b, conf.Angles+d)
+					var sum float64
+					for _, ni := range n {
+						val := h * ni
+						if !conf.NoClip {
+							val = math.Min(val, 0.2)
+						}
+						sum += val
+					}
+					feat.Set(x, y, off+d, sum/2)
 				}
-				feat.Set(x, y, off+d, sum/2)
+				off += conf.Angles
 			}
 
 			// Texture features.
-			off = 3 * conf.Angles
-			for i, ni := range n {
-				var sum float64
-				for d := 0; d < 2*conf.Angles; d++ {
-					h := hist.At(a, b, d)
-					sum += math.Min(h*ni, 0.2)
+			if !conf.NoTexture {
+				for i, ni := range n {
+					var sum float64
+					for d := 0; d < 2*conf.Angles; d++ {
+						h := hist.At(a, b, d)
+						val := h * ni
+						if !conf.NoClip {
+							val = math.Min(val, 0.2)
+						}
+						sum += val
+					}
+					feat.Set(x, y, off+i, sum/math.Sqrt(float64(2*conf.Angles)))
 				}
-				feat.Set(x, y, off+i, 0.2357*sum)
+				off += 4
 			}
 		}
 	}
-
 	return feat
 }
 
