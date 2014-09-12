@@ -6,29 +6,25 @@ import (
 	"sort"
 )
 
-// Determines whether a overlaps b.
-// The score of a was higher than that of b.
+// OverlapFunc checks whether a overlaps b.
+// It does not need to be symmetric.
+// The score of a was at least that of b.
 type OverlapFunc func(a, b image.Rectangle) bool
 
-// Intersection over union.
+// IOU computes intersection over union.
 func IOU(a, b image.Rectangle) float64 {
 	inter := area(a.Intersect(b))
 	union := area(a) + area(b) - inter
 	return float64(inter) / float64(union)
 }
 
-// Returns the fraction of B which is covered by A.
+// Cover computes the fraction of B which is covered by A.
 func Cover(a, b image.Rectangle) float64 {
 	inter := area(a.Intersect(b))
 	return float64(inter) / float64(area(b))
 }
 
-func area(r image.Rectangle) int {
-	s := r.Size()
-	return s.X * s.Y
-}
-
-// Performs non-max suppression on a sorted list of detections.
+// Suppress performs non-max suppression on a sorted list of detections.
 //
 // The limit on the number of detections to keep is ignored if non-positive.
 // Overlap criteria are evaluated exhaustively.
@@ -39,7 +35,7 @@ func area(r image.Rectangle) int {
 //	overlap := func(a, b image.Rectangle) bool { return detect.IOU(a, b) > 0.5 }
 //	dets = detect.Suppress(dets, 0, overlap)
 func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []Det {
-	inds := SuppressSet(dets, maxnum, overlap)
+	inds := suppressSet(dets, maxnum, overlap)
 	subset := make([]Det, len(inds))
 	for i, ind := range inds {
 		subset[i] = dets[ind]
@@ -47,8 +43,8 @@ func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []Det {
 	return subset
 }
 
-// Returns a list of indices to keep.
-func SuppressSet(dets []Det, maxnum int, overlap OverlapFunc) []int {
+// SuppressSet performs non-max suppression and returns the indices to keep.
+func suppressSet(dets []Det, maxnum int, overlap OverlapFunc) []int {
 	if !sort.IsSorted(detsByScoreDesc(dets)) {
 		panic("not sorted")
 	}
@@ -65,6 +61,7 @@ func SuppressSet(dets []Det, maxnum int, overlap OverlapFunc) []int {
 	return subset
 }
 
+// SupprFilter specifies parameters to Suppress.
 type SupprFilter struct {
 	// Maximum number of detections to return.
 	// Ignored if non-negative.

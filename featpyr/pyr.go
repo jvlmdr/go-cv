@@ -10,7 +10,7 @@ import (
 )
 
 // Level zero is the original image.
-// Level i has size (width, height) * Scales.At(i).
+// Level i has size (width, height) * Scales[i].
 type Pyramid struct {
 	Images *imgpyr.Pyramid
 	// Feature transform of each level in pyramid.
@@ -45,7 +45,7 @@ func (pyr *Pyramid) Image(level int) image.Image {
 
 // Accesses the scale of level i.
 func (pyr *Pyramid) Scale(i int) float64 {
-	return pyr.Images.Scales.At(i)
+	return pyr.Images.Scales[i]
 }
 
 // Converts a point in the feature pyramid to a point in the image.

@@ -65,7 +65,7 @@ func TestScales(t *testing.T) {
 	}
 
 	for _, e := range cases {
-		scales := Scales(e.Image, e.Tmpl, e.Step)
+		scales := Scales(e.Image, e.Tmpl, 1, e.Step)
 		if scales.Len != e.Len {
 			t.Errorf(
 				"image %v, min %v, step %g: want %d, got %d",

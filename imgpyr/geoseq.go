@@ -53,3 +53,11 @@ func (seq GeoSeq) Inv(x float64) float64 {
 func (seq GeoSeq) Reverse() GeoSeq {
 	return GeoSeq{seq.At(seq.Len - 1), 1 / seq.Step, seq.Len}
 }
+
+func (seq GeoSeq) Elems() []float64 {
+	x := make([]float64, seq.Len)
+	for i := 0; i < seq.Len; i++ {
+		x[i] = seq.At(i)
+	}
+	return x
+}

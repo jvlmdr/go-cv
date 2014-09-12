@@ -21,3 +21,7 @@ func round(x float64) int {
 	}
 	return int(x + 0.5)
 }
+
+func area(r image.Rectangle) int {
+	return r.Dx() * r.Dy()
+}
