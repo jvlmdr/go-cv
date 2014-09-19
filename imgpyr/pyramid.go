@@ -3,6 +3,7 @@ package imgpyr
 import (
 	"image"
 	"image/draw"
+	"log"
 	"math"
 
 	"github.com/nfnt/resize"
@@ -80,6 +81,7 @@ func resizeIfNec(size image.Point, im image.Image, interp resize.InterpolationFu
 	if size.Eq(im.Bounds().Size()) {
 		return clone(im)
 	}
+	log.Printf("resize %v to %v", im.Bounds().Size(), size)
 	return resize.Resize(uint(size.X), uint(size.Y), im, interp)
 }
 

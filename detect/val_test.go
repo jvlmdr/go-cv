@@ -1,29 +1,31 @@
-package detect
+package detect_test
 
 import (
 	"fmt"
 	"image"
 	"reflect"
 	"testing"
+
+	"github.com/jvlmdr/go-cv/detect"
 )
 
 func TestMatch(t *testing.T) {
 	cases := []struct {
-		Dets     []Det
+		Dets     []detect.Det
 		Refs     []image.Rectangle
 		MinInter float64
 		Match    map[int]int
 	}{
 		// Empty.
 		{
-			[]Det{},
+			[]detect.Det{},
 			[]image.Rectangle{},
 			0.5,
 			map[int]int{},
 		},
 		// No detections.
 		{
-			[]Det{},
+			[]detect.Det{},
 			[]image.Rectangle{
 				image.Rect(10, 10, 110, 110),
 				image.Rect(100, 0, 200, 100),
@@ -33,7 +35,7 @@ func TestMatch(t *testing.T) {
 		},
 		// No references.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(110, 10, 210, 110)},
 			},
@@ -49,7 +51,7 @@ func TestMatch(t *testing.T) {
 		// A cup B: 2000 + 2400 - 1500 = 2900
 		// 1500 / 2900 > 0.5
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(10, 20, 50, 70)},
 			},
 			[]image.Rectangle{
@@ -61,7 +63,7 @@ func TestMatch(t *testing.T) {
 		},
 		// Different order of references.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(10, 20, 50, 70)},
 			},
 			[]image.Rectangle{
@@ -73,7 +75,7 @@ func TestMatch(t *testing.T) {
 		},
 		// One detection, two references, no matches.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(10, 20, 50, 80)},
 			},
 			[]image.Rectangle{
@@ -87,7 +89,7 @@ func TestMatch(t *testing.T) {
 		// Check intersection threshold.
 		// (100-33) / 133 > 0.5
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 			},
 			[]image.Rectangle{
@@ -98,7 +100,7 @@ func TestMatch(t *testing.T) {
 		},
 		// (100-34) / 134 < 0.5
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 			},
 			[]image.Rectangle{
@@ -109,7 +111,7 @@ func TestMatch(t *testing.T) {
 		},
 		// (100-50) / 150 = 1/3
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 			},
 			[]image.Rectangle{
@@ -120,7 +122,7 @@ func TestMatch(t *testing.T) {
 		},
 		// (100-50) / 150 = 1/3
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 			},
 			[]image.Rectangle{
@@ -132,7 +134,7 @@ func TestMatch(t *testing.T) {
 
 		// Match first to first and second to second.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(110, 10, 210, 110)},
 			},
@@ -145,7 +147,7 @@ func TestMatch(t *testing.T) {
 		},
 		// Match first to second and second to first.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(110, 10, 210, 110)},
 			},
@@ -158,7 +160,7 @@ func TestMatch(t *testing.T) {
 		},
 		// Match first to third even though first is OK.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(110, 10, 210, 110)},
 			},
@@ -174,7 +176,7 @@ func TestMatch(t *testing.T) {
 		// Let first detection take reference
 		// even though it's better for the second.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(5, 5, 105, 105)},
 			},
@@ -188,7 +190,7 @@ func TestMatch(t *testing.T) {
 		// which is better for the second.
 		// Provide a reference for the second detection.
 		{
-			[]Det{
+			[]detect.Det{
 				{10, image.Rect(0, 0, 100, 100)},
 				{9, image.Rect(5, 5, 105, 105)},
 			},
@@ -203,7 +205,7 @@ func TestMatch(t *testing.T) {
 	}
 
 	for _, x := range cases {
-		match := Match(x.Dets, x.Refs, x.MinInter)
+		match := detect.Match(x.Dets, x.Refs, x.MinInter)
 		if !reflect.DeepEqual(match, x.Match) {
 			s := fmt.Sprint(
 				"detections:\n\t", x.Dets, "\n",

@@ -1,64 +1,65 @@
-package detect
+package detect_test
 
 import (
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/jvlmdr/go-ml"
+	"github.com/jvlmdr/go-cv/detect"
+	"github.com/jvlmdr/go-ml/ml"
 )
 
-func TestResultSet_Enum(t *testing.T) {
+func TestValSet_Enum(t *testing.T) {
 	cases := []struct {
-		In  *ResultSet
-		Out []ml.Result
+		In  *detect.ValSet
+		Out ml.PerfPath
 	}{
 		// Empty.
 		{
-			&ResultSet{
-				Dets:   []ValDet{},
+			&detect.ValSet{
+				Dets:   []detect.ValScore{},
 				Misses: 0,
 			},
-			[]ml.Result{
+			[]ml.Perf{
 				{TP: 0, FP: 0, FN: 0},
 			},
 		},
 		// Empty with misses.
 		{
-			&ResultSet{
-				Dets:   []ValDet{},
+			&detect.ValSet{
+				Dets:   []detect.ValScore{},
 				Misses: 8,
 			},
-			[]ml.Result{
+			[]ml.Perf{
 				{TP: 0, FP: 0, FN: 8},
 			},
 		},
 		// One true detection.
 		{
-			&ResultSet{
-				Dets:   []ValDet{{True: true}},
+			&detect.ValSet{
+				Dets:   []detect.ValScore{{True: true}},
 				Misses: 8,
 			},
-			[]ml.Result{
+			[]ml.Perf{
 				{TP: 0, FP: 0, FN: 9},
 				{TP: 1, FP: 0, FN: 8},
 			},
 		},
 		// One false detection.
 		{
-			&ResultSet{
-				Dets:   []ValDet{{True: false}},
+			&detect.ValSet{
+				Dets:   []detect.ValScore{{True: false}},
 				Misses: 8,
 			},
-			[]ml.Result{
+			[]ml.Perf{
 				{TP: 0, FP: 0, FN: 8},
 				{TP: 0, FP: 1, FN: 8},
 			},
 		},
 		// Whole string of detections.
 		{
-			&ResultSet{
-				Dets: []ValDet{
+			&detect.ValSet{
+				Dets: []detect.ValScore{
 					{True: true},
 					{True: true},
 					{True: false},
@@ -76,7 +77,7 @@ func TestResultSet_Enum(t *testing.T) {
 				},
 				Misses: 8,
 			},
-			[]ml.Result{
+			[]ml.Perf{
 				{TP: 0, FP: 0, FN: 12},
 				{TP: 1, FP: 0, FN: 11},
 				{TP: 2, FP: 0, FN: 10},

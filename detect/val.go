@@ -3,60 +3,68 @@ package detect
 import (
 	"container/list"
 	"image"
-	"sort"
 )
 
-// Validated detection.
+// ValDet describes a validated detection,
+// a detection that has been compared to ground truth and
+// deemed true or false.
 type ValDet struct {
-	// Need score to merge results from multiple images.
 	Det
-	// If this was a true detection, give its reference.
+	// Is this a true detection?
 	True bool
+	// If so, give its corresponding annotation.
+	Ref image.Rectangle
 }
 
-func MergeValDets(a, b []ValDet) []ValDet {
-	if !sort.IsSorted(valDetsByScoreDesc(a)) {
-		panic("not sorted")
-	}
-	if !sort.IsSorted(valDetsByScoreDesc(b)) {
-		panic("not sorted")
-	}
-
-	c := make([]ValDet, 0, len(a)+len(b))
-	for len(a) > 0 || len(b) > 0 {
-		if len(a) == 0 {
-			return append(c, b...)
-		}
-		if len(b) == 0 {
-			return append(c, a...)
-		}
-		if a[0].Score > b[0].Score {
-			c, a = append(c, a[0]), a[1:]
-		} else {
-			c, b = append(c, b[0]), b[1:]
-		}
-	}
-	return c
+// ValImage describes the validation of a set of detections in one image.
+// Can be used to visualize correct detections, false positives and missed detections.
+type ValImage struct {
+	// Validated detections ordered (descending) by score.
+	Dets []ValDet
+	// Number of missed instances (false negatives).
+	Misses []image.Rectangle
 }
 
-// Takes a list of detections ordered by score
-// and an unordered list of ground truth regions.
-// Assigns each detection to the reference window with which it overlaps the most
+// Scores extracts just the scores of the validated detections,
+// discarding their location.
+func (im *ValImage) Scores() []ValScore {
+	scores := make([]ValScore, len(im.Dets))
+	for i, det := range im.Dets {
+		scores[i] = ValScore{det.Score, det.True}
+	}
+	return scores
+}
+
+// Set returns the set containing this image.
+func (im *ValImage) Set() *ValSet {
+	return &ValSet{im.Scores(), len(im.Misses), 1}
+}
+
+// Validate compares a list of detections in an image to a ground-truth reference.
+// The detections must be ordered (descending) by score.
+// Some of the regions can be labelled as "ignore".
+// Each detection is assigned to the reference window with which it overlaps the most
 // if that overlap is sufficient.
+// This is performed greedily and references cannot match to multiple detections.
 //
-// Overlap is evaluated using intersection over union.
-func ValidateMatch(dets []Det, refs []image.Rectangle, mininter float64) *ResultSet {
-	m := Match(dets, refs, mininter)
-	return ResultsMatch(dets, refs, m)
+// Sufficient overlap to match a reference is assessed using intersection-over-union.
+// Sufficient overlap to ignore a detection is assessed by what fraction of the detection is covered.
+func Validate(dets []Det, refs, ignore []image.Rectangle, refMinIOU, ignoreMinCover float64) *ValImage {
+	im := matchesToValImage(Match(dets, refs, refMinIOU), dets, refs)
+	if len(ignore) > 0 {
+		im.Dets = removeIfIgnored(im.Dets, ignore, ignoreMinCover)
+	}
+	return im
 }
 
-// Takes a list of detections ordered by score
+// Match takes a list of detections ordered (descending) by score
 // and an unordered list of ground truth regions.
 // Assigns each detection to the reference window with which it overlaps the most
 // if that overlap is sufficient.
 // Returns a map from detection index to reference index.
 //
 // Overlap is evaluated using intersection over union.
+// The scores of the detections are not used.
 func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 	// Map from dets to refs.
 	m := make(map[int]int)
@@ -90,7 +98,7 @@ func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 	return m
 }
 
-func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) *ResultSet {
+func matchesToValImage(m map[int]int, dets []Det, refs []image.Rectangle) *ValImage {
 	// Label each detection as true positive or false positive.
 	valdets := make([]ValDet, len(dets))
 	// Record which references were matched.
@@ -98,17 +106,48 @@ func ResultsMatch(dets []Det, refs []image.Rectangle, m map[int]int) *ResultSet 
 	for i, det := range dets {
 		j, p := m[i]
 		if !p {
-			valdets[i] = ValDet{det, false}
+			valdets[i] = ValDet{Det: det, True: false}
 			continue
 		}
 		if used[j] {
 			panic("already matched")
 		}
 		used[j] = true
-		valdets[i] = ValDet{det, true}
+		valdets[i] = ValDet{Det: det, True: true, Ref: refs[j]}
 	}
-	misses := len(refs) - len(used)
-	return &ResultSet{valdets, misses}
+	misses := make([]image.Rectangle, 0, len(refs)-len(used))
+	for j, ref := range refs {
+		if used[j] {
+			continue
+		}
+		misses = append(misses, ref)
+	}
+	return &ValImage{valdets, misses}
+}
+
+func removeIfIgnored(dets []ValDet, ignore []image.Rectangle, minCover float64) []ValDet {
+	var keep []ValDet
+	for _, det := range dets {
+		if !det.True && anyCovers(ignore, det.Rect, minCover) {
+			continue
+		}
+		keep = append(keep, det)
+	}
+	return keep
+}
+
+func anyCovers(ys []image.Rectangle, x image.Rectangle, minCover float64) bool {
+	for _, y := range ys {
+		if covers(y, x, minCover) {
+			return true
+		}
+	}
+	return false
+}
+
+// Computes whether A covers B.
+func covers(a, b image.Rectangle, min float64) bool {
+	return float64(area(b.Intersect(a)))/float64(area(b)) > min
 }
 
 type valDetsByScoreDesc []ValDet

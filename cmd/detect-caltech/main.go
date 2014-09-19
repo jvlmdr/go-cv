@@ -29,12 +29,19 @@ func init() {
 
 func main() {
 	var (
-		name     = flag.String("dataset", "usatest", "Dataset identifier.")
-		dir      = flag.String("dir", "", "Location of dataset. Empty means working dir.")
+		// Dataset options.
+		name = flag.String("dataset", "usatest", "Dataset identifier.")
+		dir  = flag.String("dir", "", "Location of dataset. Empty means working dir.")
+		// Detection options.
 		pyrStep  = flag.Float64("pyr-step", 1.2, "Geometric scale steps in image pyramid.")
 		maxScale = flag.Float64("max-scale", 1, "Maximum amount to scale image. Greater than 1 is upsampling.")
-		maxIOU   = flag.Float64("max-iou", 0, "Maximum IOU that two detections can have before NMS.")
+		maxIOU   = flag.Float64("max-iou", 0.3, "Maximum IOU that two detections can have before NMS.")
 		margin   = flag.Int("margin", 0, "Spatial bin parameter to HOG.")
+		// Validation options.
+		minValIOU      = flag.Float64("min-val-iou", 0.5, "Minimum IOU for a detection to be validated.")
+		minIgnoreCover = flag.Float64("min-ignore-cover", 0, "Minimum that a detection must be covered by an ignore region to be ignored.")
+		// Display options.
+		numShow = flag.Int("num-show", 4, "Number of detections to show per image")
 	)
 	flag.Parse()
 	if flag.NArg() != 2 {
@@ -73,32 +80,45 @@ func main() {
 		SupprFilter: detect.SupprFilter{MaxNum: 0, Overlap: overlap},
 	}
 
-	err = testAll(dataset, *dir, tmpl, opts)
+	var val *detect.ValSet
+	err = fileutil.Cache(&val, "val-set.json", func() (*detect.ValSet, error) {
+		return testAll(dataset, *dir, tmpl, opts, *minValIOU, *minIgnoreCover, *numShow)
+	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 }
 
-func testAll(dataset *Dataset, dir string, tmpl *detect.FeatTmpl, opts detect.MultiScaleOpts) error {
+func testAll(dataset *Dataset, dir string, tmpl *detect.FeatTmpl, opts detect.MultiScaleOpts, minValIOU, minIgnoreCover float64, numShow int) (*detect.ValSet, error) {
 	// Load each image and perform multi-scale detection.
-	baseImDir := path.Join(dir, "data-"+dataset.Dir, "images")
+	rootDir := path.Join(dir, "data-"+dataset.Dir)
+	var vals []*detect.ValSet
 	for set, seqs := range dataset.Seqs {
 		for _, seq := range seqs {
-			// Check that image directory exists.
 			relDir := path.Join(fmt.Sprintf("set%02d", set), fmt.Sprintf("V%03d", seq))
-			imDir := path.Join(baseImDir, relDir)
-			if info, err := os.Stat(imDir); err != nil {
-				return fmt.Errorf("check sequence dir: %v", err)
-			} else if !info.IsDir() {
-				return fmt.Errorf("sequence dir is not dir: %s", imDir)
+			// Check that image directory exists.
+			imDir := path.Join(rootDir, "images", relDir)
+			if err := isDir(imDir); err != nil {
+				return nil, fmt.Errorf("check image dir: %v", err)
+			}
+			// Check that annotation directory exists.
+			annotDir := path.Join(rootDir, "annotations", relDir)
+			if err := isDir(annotDir); err != nil {
+				return nil, fmt.Errorf("check annotation dir: %v", err)
 			}
 
 			// Create results directory.
 			resDir := path.Join("res", relDir)
 			if err := os.MkdirAll(resDir, 0755); err != nil {
-				return fmt.Errorf("create results dir: %v", err)
+				return nil, fmt.Errorf("create results dir: %v", err)
+			}
+			// Create visualizations directory.
+			visDir := path.Join("vis-dets", relDir)
+			if err := os.MkdirAll(visDir, 0755); err != nil {
+				return nil, fmt.Errorf("create visualizations dir: %v", err)
 			}
 
+			var visFiles []string
 			for j := 0; ; j++ {
 				frame := (j+1)*dataset.Skip - 1
 				imFile := path.Join(imDir, fmt.Sprintf("I%05d.%s", frame, dataset.Ext))
@@ -110,17 +130,47 @@ func testAll(dataset *Dataset, dir string, tmpl *detect.FeatTmpl, opts detect.Mu
 				// Load image file.
 				im, err := loadImage(imFile)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				// Perform multi-scale detection.
 				dets := detect.MultiScale(im, tmpl, opts)
 				// Save detections for each image to file.
 				resFile := path.Join(resDir, fmt.Sprintf("I%05d.txt", frame))
 				if err := saveDets(resFile, dets); err != nil {
-					return fmt.Errorf("save detections: ", err)
+					return nil, fmt.Errorf("save detections: %v", err)
 				}
+				// Load annotations and validate detections.
+				annotFile := path.Join(annotDir, fmt.Sprintf("I%05d.txt", frame))
+				annot, err := loadAnnot(annotFile)
+				if err != nil {
+					return nil, fmt.Errorf("load annotations: %v", err)
+				}
+				refs, ignore := Rects(annot, Reasonable())
+				val := detect.Validate(dets, refs, ignore, minValIOU, minIgnoreCover)
+				vals = append(vals, val.Set())
+				// Save visualization of detections.
+				visFile := path.Join(visDir, fmt.Sprintf("I%05d.jpg", frame))
+				if err := visDets(visFile, imFile, val, numShow); err != nil {
+					return nil, fmt.Errorf("visualize detections: %v", err)
+				}
+				visFiles = append(visFiles, fmt.Sprintf("I%05d.jpg", frame))
+			}
+
+			// Create index of visualizations.
+			visIndexFile := path.Join(visDir, "index.html")
+			if err := saveVisIndex(visIndexFile, visFiles); err != nil {
+				return nil, fmt.Errorf("save index of visualizations: $v", err)
 			}
 		}
+	}
+	return detect.MergeValSets(vals...), nil
+}
+
+func isDir(fname string) error {
+	if info, err := os.Stat(fname); err != nil {
+		return err
+	} else if !info.IsDir() {
+		return fmt.Errorf("is not dir: %s", fname)
 	}
 	return nil
 }

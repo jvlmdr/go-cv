@@ -28,6 +28,7 @@ func Cover(a, b image.Rectangle) float64 {
 //
 // The limit on the number of detections to keep is ignored if non-positive.
 // Overlap criteria are evaluated exhaustively.
+// The scores are not used.
 //
 // Example overlap criterion:
 //
