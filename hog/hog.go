@@ -16,8 +16,8 @@ type Transform struct {
 	Conf Config
 }
 
-func (t Transform) Apply(im image.Image) *rimg64.Multi {
-	return HOG(rimg64.FromColor(im), t.Conf)
+func (t Transform) Apply(im image.Image) (*rimg64.Multi, error) {
+	return HOG(rimg64.FromColor(im), t.Conf), nil
 }
 
 func (t Transform) Rate() int {
