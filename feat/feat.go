@@ -6,7 +6,7 @@ import (
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
-// Transform defines a common interface for feature transforms.
+// Image defines a transform of an image.Image.
 //
 // Feature transforms are assumed to have a positive integer downsample rate.
 // If the input image f(x, y) has size (m, n) with domain
@@ -22,9 +22,17 @@ import (
 // 	u = left, ..., p - 1 - right
 // 	v = top, ..., q - 1 - bottom
 // where (left, right, top, bottom) are non-negative integers describing an inset on each side.
-type Transform interface {
+type Image interface {
 	// Function to compute transform on image.
-	Apply(im image.Image) *rimg64.Multi
+	Apply(image.Image) (*rimg64.Multi, error)
+	// Integer downsample rate.
+	Rate() int
+}
+
+// Real defines a transform of a real-valued image.
+type Real interface {
+	// Function to compute transform on image.
+	Apply(*rimg64.Multi) (*rimg64.Multi, error)
 	// Integer downsample rate.
 	Rate() int
 }

@@ -22,9 +22,12 @@ func Detect(im *rimg64.Multi, margin feat.Margin, tmpl *FeatTmpl, rate int, deto
 
 // Detect performs detection and non-max suppression at a single scale.
 // It returns a list of scored rectangles in the image.
-func DetectImage(im image.Image, phi feat.Transform, pad feat.Pad, tmpl *FeatTmpl, detopts DetFilter, suppropts SupprFilter) []Det {
-	f := feat.ApplyPad(phi, im, pad)
-	return Detect(f, pad.Margin, tmpl, phi.Rate(), detopts, suppropts)
+func DetectImage(im image.Image, phi feat.Image, pad feat.Pad, tmpl *FeatTmpl, detopts DetFilter, suppropts SupprFilter) ([]Det, error) {
+	f, err := feat.ApplyPad(phi, im, pad)
+	if err != nil {
+		return nil, err
+	}
+	return Detect(f, pad.Margin, tmpl, phi.Rate(), detopts, suppropts), nil
 }
 
 // Score computes the score of all windows in an image at a single scale.

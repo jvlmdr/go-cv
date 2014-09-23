@@ -12,10 +12,10 @@ import (
 
 // MultiScaleOpts specifies the parameters to MultiScale().
 type MultiScaleOpts struct {
-	MaxScale float64
-	PyrStep  float64
-	Interp   resize.InterpolationFunction
-	feat.Transform
+	MaxScale  float64
+	PyrStep   float64
+	Interp    resize.InterpolationFunction
+	Transform feat.Image
 	feat.Pad
 	DetFilter
 	SupprFilter
@@ -28,21 +28,31 @@ type MultiScaleOpts struct {
 // The levels are geometrically spaced at intervals of PyrStep.
 // Detections are filtered using DetFtiler and then non-max suppression
 // is performed using the OverlapFunc test.
-func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) []Det {
+func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) ([]Det, error) {
 	scales := imgpyr.Scales(im.Bounds().Size(), tmpl.Size, opts.MaxScale, opts.PyrStep).Elems()
 	ims := imgpyr.NewGenerator(im, scales, opts.Interp)
 	pyr := featpyr.NewGenerator(ims, opts.Transform, opts.Pad)
 	var dets []Det
-	for l := pyr.First(); l != nil; l = pyr.Next(l) {
+	l, err := pyr.First()
+	if err != nil {
+		return nil, err
+	}
+	for l != nil {
 		pts := detectPoints(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
 		// Convert to scored rectangles in the image.
 		for _, pt := range pts {
 			rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)
 			dets = append(dets, Det{pt.Score, rect})
 		}
+		var err error
+		l, err = pyr.Next(l)
+		if err != nil {
+			return nil, err
+		}
 	}
 	Sort(dets)
-	return Suppress(dets, opts.SupprFilter.MaxNum, opts.SupprFilter.Overlap)
+	dets = Suppress(dets, opts.SupprFilter.MaxNum, opts.SupprFilter.Overlap)
+	return dets, nil
 }
 
 // Performs detection and non-max suppression.

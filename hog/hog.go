@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	feat.Register("hog", func() feat.Transform { return new(Transform) })
+	feat.RegisterImage("hog", func() feat.Image { return new(Transform) })
 }
 
 type Transform struct {

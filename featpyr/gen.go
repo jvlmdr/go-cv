@@ -12,12 +12,12 @@ import (
 //
 // The features are computed using Transform after extending the image using Pad.
 type Generator struct {
-	Image *imgpyr.Generator
-	feat.Transform
+	Image     *imgpyr.Generator
+	Transform feat.Image
 	feat.Pad
 }
 
-func NewGenerator(im *imgpyr.Generator, phi feat.Transform, pad feat.Pad) *Generator {
+func NewGenerator(im *imgpyr.Generator, phi feat.Image, pad feat.Pad) *Generator {
 	return &Generator{im, phi, pad}
 }
 
@@ -27,22 +27,28 @@ type Level struct {
 	Feat  *rimg64.Multi
 }
 
-func (pyr *Generator) First() *Level {
+func (pyr *Generator) First() (*Level, error) {
 	im := pyr.Image.First()
 	if im == nil {
-		return nil
+		return nil, nil
 	}
-	x := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
-	return &Level{im, x}
+	x, err := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
+	if err != nil {
+		return nil, err
+	}
+	return &Level{im, x}, nil
 }
 
-func (pyr *Generator) Next(curr *Level) *Level {
+func (pyr *Generator) Next(curr *Level) (*Level, error) {
 	im := pyr.Image.Next(curr.Image)
 	if im == nil {
-		return nil
+		return nil, nil
 	}
-	x := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
-	return &Level{im, x}
+	x, err := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
+	if err != nil {
+		return nil, err
+	}
+	return &Level{im, x}, nil
 }
 
 // ToImageRect converts a point in the feature pyramid to a rectangle in the image.

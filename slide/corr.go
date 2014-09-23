@@ -9,17 +9,9 @@ import (
 	"github.com/jvlmdr/go-fftw/fftw"
 )
 
-// Returns the number of positions such that the template g lies entirely inside the image f.
-func outputSize(f, g image.Point) image.Point {
-	var h image.Point
-	h.X = max(f.X-g.X+1, 0)
-	h.Y = max(f.Y-g.Y+1, 0)
-	return h
-}
-
 // Computes approximate expense of each approach, return true if Fourier is better.
 func useFourier(f, g image.Point) bool {
-	h := outputSize(f, g)
+	h := ValidSize(f, g)
 	// One dot product per output pixel.
 	naive := h.X * h.Y * g.X * g.Y
 	// Two forward transforms and an inverse transform.
@@ -37,7 +29,7 @@ func Corr(f, g *rimg64.Image) *rimg64.Image {
 	log.Printf("slide %dx%d template over %dx%d image",
 		g.Width, g.Height, f.Width, f.Height,
 	)
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
 		return nil
@@ -50,7 +42,7 @@ func Corr(f, g *rimg64.Image) *rimg64.Image {
 }
 
 func corrNaive(f, g *rimg64.Image) *rimg64.Image {
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
 		return nil
@@ -73,7 +65,7 @@ func corrNaive(f, g *rimg64.Image) *rimg64.Image {
 
 // Computes correlation of template g with image f.
 func corrFFT(f, g *rimg64.Image) *rimg64.Image {
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
 		return nil

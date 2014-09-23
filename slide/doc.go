@@ -1,4 +1,4 @@
 /*
-Package slide performs cross-correlation of real images.
+Package slide contains sliding-window operations.
 */
 package slide

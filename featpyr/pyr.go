@@ -23,17 +23,22 @@ type Pyramid struct {
 
 // Constructs a feature pyramid.
 // Extends each level by a margin before computing features.
-func NewPad(images *imgpyr.Pyramid, phi feat.Transform, pad feat.Pad) *Pyramid {
+func NewPad(images *imgpyr.Pyramid, phi feat.Image, pad feat.Pad) (*Pyramid, error) {
 	feats := make([]*rimg64.Multi, len(images.Levels))
 	for i, im := range images.Levels {
-		feats[i] = feat.ApplyPad(phi, im, pad)
+		var err error
+		f, err := feat.ApplyPad(phi, im, pad)
+		if err != nil {
+			return nil, err
+		}
+		feats[i] = f
 	}
 	log.Print("finished computing feature transform: ", len(images.Levels))
-	return &Pyramid{images, feats, phi.Rate(), pad.Margin}
+	return &Pyramid{images, feats, phi.Rate(), pad.Margin}, nil
 }
 
 // Constructs a feature pyramid.
-func New(images *imgpyr.Pyramid, phi feat.Transform) *Pyramid {
+func New(images *imgpyr.Pyramid, phi feat.Image) (*Pyramid, error) {
 	return NewPad(images, phi, feat.NoPad())
 }
 

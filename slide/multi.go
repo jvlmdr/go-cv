@@ -22,7 +22,7 @@ func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
 		"slide %dx%dx%d template over %dx%dx%d image",
 		g.Width, g.Height, g.Channels, f.Width, f.Height, f.Channels,
 	)
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.X == 0 || size.Y == 0 {
 		return nil
@@ -35,7 +35,7 @@ func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
 }
 
 func corrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
 		return nil
@@ -59,7 +59,7 @@ func corrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
 }
 
 func corrMultiFFT(f, g *rimg64.Multi) *rimg64.Image {
-	size := outputSize(f.Size(), g.Size())
+	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
 		return nil

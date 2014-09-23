@@ -32,7 +32,7 @@ func UniformMargin(x int) Margin {
 }
 
 // ApplyPad pads the image before computing the feature transform.
-func ApplyPad(t Transform, im image.Image, pad Pad) *rimg64.Multi {
+func ApplyPad(t Image, im image.Image, pad Pad) (*rimg64.Multi, error) {
 	if pad.Margin.Empty() {
 		// Take a shortcut.
 		return t.Apply(im)
