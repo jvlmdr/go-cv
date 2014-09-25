@@ -9,7 +9,7 @@ import (
 
 func init() {
 	RegisterImage("gray", NewGray)
-	RegisterImage("color", NewRGB)
+	RegisterImage("rgb", NewRGB)
 }
 
 // NewGray returns a transform which converts the image to a real-valued gray image.
