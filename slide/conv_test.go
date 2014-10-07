@@ -55,7 +55,7 @@ func TestCorr(t *testing.T) {
 func TestConv_vsFlipCorr(t *testing.T) {
 	const (
 		eps  = 1e-9
-		M, N = 648, 486
+		M, N = 601, 599
 		m, n = 32, 64
 	)
 	f := randImage(M, N)
