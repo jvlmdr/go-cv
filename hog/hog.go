@@ -9,20 +9,26 @@ import (
 )
 
 func init() {
-	feat.RegisterImage("hog", func() feat.Image { return new(Transform) })
+	feat.RegisterImage("hog", func() feat.ImageSpec {
+		return feat.NewImageSpec(new(Transform))
+	})
 }
 
 type Transform struct {
 	Conf Config
 }
 
+func (t Transform) Rate() int {
+	// For now, down-sample rate equals size of cell.
+	return t.Conf.CellSize
+}
+
 func (t Transform) Apply(im image.Image) (*rimg64.Multi, error) {
 	return HOG(rimg64.FromColor(im), t.Conf), nil
 }
 
-func (t Transform) Rate() int {
-	// For now, down-sample rate equals size of cell.
-	return t.Conf.CellSize
+func (t Transform) Marshaler() *feat.ImageMarshaler {
+	return &feat.ImageMarshaler{"hog", feat.NewImageSpec(new(Transform))}
 }
 
 func FGMRConfig(sbin int) Config {
