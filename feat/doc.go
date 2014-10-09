@@ -6,5 +6,7 @@ The former describes a mapping from an image.Image to real values and the latter
 Both provide an integer downsample rate using Rate().
 
 Real transforms can be chained togather using feat.Compose.
+
+A MarshalableImage transform provides a Marshaler() method which returns an ImageMarshaler.
 */
 package feat

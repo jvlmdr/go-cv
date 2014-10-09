@@ -23,3 +23,16 @@ func (t *imageFunc) Apply(im image.Image) (*rimg64.Multi, error) {
 func (t *imageFunc) Rate() int {
 	return t.rate
 }
+
+func newImageFunc(f func(image.Image) (*rimg64.Multi, error), rate int, name string) ImageMarshalable {
+	return &marshalableImageFunc{imageFunc{f, rate}, name}
+}
+
+type marshalableImageFunc struct {
+	imageFunc
+	name string
+}
+
+func (t *marshalableImageFunc) Marshaler() *ImageMarshaler {
+	return &ImageMarshaler{t.name, nil}
+}
