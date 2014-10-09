@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func init() {
-	feat.RegisterReal("sum-pool", func() feat.RealSpec {
-		return feat.NewRealSpec(new(SumPool))
-	})
+	featset.RegisterReal("sum-pool", func() featset.Real { return new(SumPool) })
 }
 
 type SumPool struct {
@@ -50,6 +48,8 @@ func (phi SumPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *SumPool) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"sum-pool", feat.NewRealSpec(phi)}
+func (phi *SumPool) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"sum-pool", phi}
 }
+
+func (phi *SumPool) Transform() featset.Real { return phi }

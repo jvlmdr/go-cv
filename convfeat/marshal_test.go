@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/jvlmdr/go-cv/convfeat"
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 )
 
 func TestMarshaler(t *testing.T) {
-	transforms := []feat.RealMarshalable{
+	transforms := []featset.Real{
 		new(convfeat.PosPart),
 		new(convfeat.PosNegPart),
 		new(convfeat.PosNegPart),
@@ -20,7 +20,7 @@ func TestMarshaler(t *testing.T) {
 		&convfeat.AdjChanNorm{5, 2, 1e-4, 0.75},
 	}
 	for _, phi := range transforms {
-		err := feat.TestRealMarshaler(phi)
+		err := featset.TestRealMarshaler(phi)
 		if err != nil {
 			t.Error(err)
 		}

@@ -1,4 +1,4 @@
-package feat
+package featset
 
 import (
 	"image"
@@ -7,24 +7,28 @@ import (
 )
 
 func init() {
-	RegisterReal("compose", NewComposeSpec)
-	RegisterImage("compose-image", NewComposeImageSpec)
+	RegisterReal("compose", newComposeMarshaler)
+	RegisterImage("compose-image", newComposeImageMarshaler)
 }
 
-// NewComposeSpec returns a Compose transform which can be decoded into.
-func NewComposeSpec() RealSpec {
-	return new(composeSpec)
+func newComposeMarshaler() Real {
+	return &Compose{
+		Outer: new(RealMarshaler),
+		Inner: new(RealMarshaler),
+	}
 }
 
-// NewComposeImageSpec returns a ComposeImage transform which can be decoded into.
-func NewComposeImageSpec() ImageSpec {
-	return new(composeImageSpec)
+func newComposeImageMarshaler() Image {
+	return &ComposeImage{
+		Outer: new(RealMarshaler),
+		Inner: new(ImageMarshaler),
+	}
 }
 
 // Compose computes Outer(Inner(x)).
 // Compose is itself a Real transform, enabling chains of functions.
 type Compose struct {
-	Outer, Inner RealMarshalable
+	Outer, Inner Real
 }
 
 func (phi *Compose) Rate() int {
@@ -41,23 +45,16 @@ func (phi *Compose) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 
 func (phi *Compose) Marshaler() *RealMarshaler {
 	// Obtain marshaler for each member.
-	spec := &composeSpec{
+	return &RealMarshaler{"compose", &Compose{
 		Outer: phi.Outer.Marshaler(),
 		Inner: phi.Inner.Marshaler(),
-	}
-	return &RealMarshaler{"compose", spec}
+	}}
 }
 
-// composeSpec contains the contents of Compose.
-type composeSpec struct {
-	Outer, Inner *RealMarshaler
-}
-
-func (m *composeSpec) Transform() RealMarshalable {
-	// Obtain transform from each marshaler.
+func (phi *Compose) Transform() Real {
 	return &Compose{
-		Outer: m.Outer.Spec.Transform(),
-		Inner: m.Inner.Spec.Transform(),
+		Outer: phi.Outer.Transform(),
+		Inner: phi.Inner.Transform(),
 	}
 }
 
@@ -65,8 +62,8 @@ func (m *composeSpec) Transform() RealMarshalable {
 // Unlike a Compose transform, the Inner function is computed
 // directly on the integer-valued image.
 type ComposeImage struct {
-	Outer RealMarshalable
-	Inner ImageMarshalable
+	Outer Real
+	Inner Image
 }
 
 func (phi *ComposeImage) Rate() int {
@@ -83,24 +80,17 @@ func (phi *ComposeImage) Apply(im image.Image) (*rimg64.Multi, error) {
 
 func (phi *ComposeImage) Marshaler() *ImageMarshaler {
 	// Obtain marshaler for each member.
-	spec := &composeImageSpec{
+	spec := &ComposeImage{
 		Outer: phi.Outer.Marshaler(),
 		Inner: phi.Inner.Marshaler(),
 	}
 	return &ImageMarshaler{"compose-image", spec}
 }
 
-// composeImageSpec contains the contents of Compose.
-type composeImageSpec struct {
-	Outer *RealMarshaler
-	Inner *ImageMarshaler
-}
-
-func (m *composeImageSpec) Transform() ImageMarshalable {
-	// Obtain transform from each marshaler.
+func (phi *ComposeImage) Transform() Image {
 	return &ComposeImage{
-		Outer: m.Outer.Spec.Transform(),
-		Inner: m.Inner.Spec.Transform(),
+		Outer: phi.Outer.Transform(),
+		Inner: phi.Inner.Transform(),
 	}
 }
 

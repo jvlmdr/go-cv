@@ -4,14 +4,12 @@ import (
 	"image"
 	"math"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func init() {
-	feat.RegisterImage("hog", func() feat.ImageSpec {
-		return feat.NewImageSpec(new(Transform))
-	})
+	featset.RegisterImage("hog", func() featset.Image { return new(Transform) })
 }
 
 type Transform struct {
@@ -27,9 +25,11 @@ func (t Transform) Apply(im image.Image) (*rimg64.Multi, error) {
 	return HOG(rimg64.FromColor(im), t.Conf), nil
 }
 
-func (t Transform) Marshaler() *feat.ImageMarshaler {
-	return &feat.ImageMarshaler{"hog", feat.NewImageSpec(new(Transform))}
+func (t Transform) Marshaler() *featset.ImageMarshaler {
+	return &featset.ImageMarshaler{"hog", t}
 }
+
+func (t Transform) Transform() featset.Image { return t }
 
 func FGMRConfig(sbin int) Config {
 	return Config{

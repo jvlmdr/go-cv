@@ -3,14 +3,12 @@ package convfeat
 import (
 	"math"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func init() {
-	feat.RegisterReal("adj-chan-norm", func() feat.RealSpec {
-		return feat.NewRealSpec(new(AdjChanNorm))
-	})
+	featset.RegisterReal("adj-chan-norm", func() featset.Real { return new(AdjChanNorm) })
 }
 
 // AdjChanNorm describes normalization over adjacent channels.
@@ -58,6 +56,10 @@ func (phi *AdjChanNorm) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *AdjChanNorm) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"adj-chan-norm", feat.NewRealSpec(phi)}
+func (phi *AdjChanNorm) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"adj-chan-norm", phi}
+}
+
+func (phi *AdjChanNorm) Transform() featset.Real {
+	return phi
 }

@@ -3,23 +3,15 @@ package convfeat
 import (
 	"math"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func init() {
-	feat.RegisterReal("pos", func() feat.RealSpec {
-		return feat.NewRealSpec(new(PosPart))
-	})
-	feat.RegisterReal("pos-neg", func() feat.RealSpec {
-		return feat.NewRealSpec(new(PosNegPart))
-	})
-	feat.RegisterReal("is-pos", func() feat.RealSpec {
-		return feat.NewRealSpec(new(IsPos))
-	})
-	feat.RegisterReal("sign", func() feat.RealSpec {
-		return feat.NewRealSpec(new(Sign))
-	})
+	featset.RegisterReal("pos", func() featset.Real { return new(PosPart) })
+	featset.RegisterReal("pos-neg", func() featset.Real { return new(PosNegPart) })
+	featset.RegisterReal("is-pos", func() featset.Real { return new(IsPos) })
+	featset.RegisterReal("sign", func() featset.Real { return new(Sign) })
 }
 
 // PosPart takes the positive part of the input.
@@ -39,9 +31,11 @@ func (phi *PosPart) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *PosPart) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"pos", nil}
+func (phi *PosPart) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"pos", nil}
 }
+
+func (phi *PosPart) Transform() featset.Real { return phi }
 
 // PosNegPart splits the input into its positive and negative parts.
 type PosNegPart struct{}
@@ -63,9 +57,11 @@ func (phi *PosNegPart) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *PosNegPart) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"pos-neg", nil}
+func (phi *PosNegPart) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"pos-neg", nil}
 }
+
+func (phi *PosNegPart) Transform() featset.Real { return phi }
 
 func posNegPart(x float64) (pos, neg float64) {
 	if math.IsNaN(x) {
@@ -96,9 +92,11 @@ func (phi *IsPos) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *IsPos) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"is-pos", nil}
+func (phi *IsPos) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"is-pos", nil}
 }
+
+func (phi *IsPos) Transform() featset.Real { return phi }
 
 // Sign returns 1 if positive, -1 if negative.
 type Sign struct{}
@@ -117,9 +115,11 @@ func (phi *Sign) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *Sign) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"sign", nil}
+func (phi *Sign) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"sign", nil}
 }
+
+func (phi *Sign) Transform() featset.Real { return phi }
 
 func sign(x float64) float64 {
 	switch {

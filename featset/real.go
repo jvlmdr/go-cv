@@ -1,4 +1,4 @@
-package feat
+package featset
 
 import (
 	"image"
@@ -7,8 +7,8 @@ import (
 )
 
 func init() {
-	RegisterImage("gray", func() ImageSpec { return NewImageSpec(new(Gray)) })
-	RegisterImage("rgb", func() ImageSpec { return NewImageSpec(new(RGB)) })
+	RegisterImage("gray", func() Image { return new(Gray) })
+	RegisterImage("rgb", func() Image { return new(RGB) })
 }
 
 type Gray struct{}
@@ -23,6 +23,8 @@ func (phi *Gray) Marshaler() *ImageMarshaler {
 	return &ImageMarshaler{"gray", nil}
 }
 
+func (phi *Gray) Transform() Image { return phi }
+
 type RGB struct{}
 
 func (phi *RGB) Rate() int { return 1 }
@@ -33,6 +35,10 @@ func (phi *RGB) Apply(im image.Image) (*rimg64.Multi, error) {
 
 func (phi *RGB) Marshaler() *ImageMarshaler {
 	return &ImageMarshaler{"rgb", nil}
+}
+
+func (phi *RGB) Transform() Image {
+	return phi
 }
 
 // toGray never encounters an error.

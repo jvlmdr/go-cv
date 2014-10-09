@@ -1,35 +1,26 @@
-package feat
+package featset
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
 	"reflect"
+
+	"github.com/jvlmdr/go-cv/rimg64"
 )
-
-type ImageMarshalable interface {
-	Image
-	Marshaler() *ImageMarshaler
-}
-
-type RealMarshalable interface {
-	Real
-	Marshaler() *RealMarshaler
-}
-
-type ImageSpec interface {
-	Transform() ImageMarshalable
-}
-
-type RealSpec interface {
-	Transform() RealMarshalable
-}
 
 // ImageMarshaler uses the default JSON marshaler and defines its own unmarshaler.
 type ImageMarshaler struct {
 	Name string
-	Spec ImageSpec
+	Spec Image `json:",omitempty"`
 }
+
+func (m *ImageMarshaler) Rate() int                  { return m.Spec.Rate() }
+func (m *ImageMarshaler) Marshaler() *ImageMarshaler { return m }
+func (m *ImageMarshaler) Transform() Image           { return m.Spec.Transform() }
+
+func (m *ImageMarshaler) Apply(im image.Image) (*rimg64.Multi, error) { return m.Spec.Apply(im) }
 
 func (m *ImageMarshaler) UnmarshalJSON(data []byte) error {
 	var x struct {
@@ -47,8 +38,10 @@ func (m *ImageMarshaler) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf(`unknown feature: "%s"`, x.Name)
 	}
 	t := create()
-	if err := json.Unmarshal(x.Spec, t); err != nil {
-		return err
+	if len(x.Spec) > 0 {
+		if err := json.Unmarshal(x.Spec, t); err != nil {
+			return err
+		}
 	}
 	m.Name = x.Name
 	m.Spec = t
@@ -57,8 +50,14 @@ func (m *ImageMarshaler) UnmarshalJSON(data []byte) error {
 
 type RealMarshaler struct {
 	Name string
-	Spec RealSpec
+	Spec Real `json:",omitempty"`
 }
+
+func (m *RealMarshaler) Rate() int                 { return m.Spec.Rate() }
+func (m *RealMarshaler) Marshaler() *RealMarshaler { return m }
+func (m *RealMarshaler) Transform() Real           { return m.Spec.Transform() }
+
+func (m *RealMarshaler) Apply(f *rimg64.Multi) (*rimg64.Multi, error) { return m.Spec.Apply(f) }
 
 func (m *RealMarshaler) UnmarshalJSON(data []byte) error {
 	var x struct {
@@ -76,57 +75,17 @@ func (m *RealMarshaler) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf(`unknown feature: "%s"`, x.Name)
 	}
 	t := create()
-	if err := json.Unmarshal(x.Spec, t); err != nil {
-		return err
+	if len(x.Spec) > 0 {
+		if err := json.Unmarshal(x.Spec, t); err != nil {
+			return err
+		}
 	}
 	m.Name = x.Name
 	m.Spec = t
 	return nil
 }
 
-func NewImageSpec(phi ImageMarshalable) ImageSpec {
-	return &simpleImageSpec{phi}
-}
-
-// simpleImageSpec wraps a simple transform.
-type simpleImageSpec struct {
-	Phi ImageMarshalable
-}
-
-func (m *simpleImageSpec) Transform() ImageMarshalable {
-	return m.Phi
-}
-
-func (m *simpleImageSpec) MarshalJSON() ([]byte, error) {
-	return json.Marshal(m.Phi)
-}
-
-func (m *simpleImageSpec) UnmarshalJSON(p []byte) error {
-	return json.Unmarshal(p, m.Phi)
-}
-
-func NewRealSpec(phi RealMarshalable) RealSpec {
-	return &simpleRealSpec{phi}
-}
-
-// simpleRealSpec wraps a simple transform.
-type simpleRealSpec struct {
-	Phi RealMarshalable
-}
-
-func (m *simpleRealSpec) Transform() RealMarshalable {
-	return m.Phi
-}
-
-func (m *simpleRealSpec) MarshalJSON() ([]byte, error) {
-	return json.Marshal(m.Phi)
-}
-
-func (m *simpleRealSpec) UnmarshalJSON(p []byte) error {
-	return json.Unmarshal(p, m.Phi)
-}
-
-func TestRealMarshaler(phi RealMarshalable) error {
+func TestRealMarshaler(phi Real) error {
 	m := phi.Marshaler()
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(m); err != nil {
@@ -144,7 +103,7 @@ func TestRealMarshaler(phi RealMarshalable) error {
 	return nil
 }
 
-func TestImageMarshaler(phi ImageMarshalable) error {
+func TestImageMarshaler(phi Image) error {
 	m := phi.Marshaler()
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(m); err != nil {

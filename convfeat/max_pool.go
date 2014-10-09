@@ -5,14 +5,12 @@ import (
 	"image"
 	"math"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
 func init() {
-	feat.RegisterReal("max-pool", func() feat.RealSpec {
-		return feat.NewRealSpec(new(MaxPool))
-	})
+	featset.RegisterReal("max-pool", func() featset.Real { return new(MaxPool) })
 }
 
 type MaxPool struct {
@@ -52,6 +50,8 @@ func (phi *MaxPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *MaxPool) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"max-pool", feat.NewRealSpec(phi)}
+func (phi *MaxPool) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"max-pool", phi}
 }
+
+func (phi *MaxPool) Transform() featset.Real { return phi }

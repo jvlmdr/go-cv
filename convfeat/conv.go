@@ -3,21 +3,15 @@ package convfeat
 import (
 	"fmt"
 
-	"github.com/jvlmdr/go-cv/feat"
+	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-cv/slide"
 )
 
 func init() {
-	feat.RegisterReal("conv", func() feat.RealSpec {
-		return feat.NewRealSpec(new(ConvMulti))
-	})
-	feat.RegisterReal("conv-each", func() feat.RealSpec {
-		return feat.NewRealSpec(new(ConvEach))
-	})
-	feat.RegisterReal("add-const", func() feat.RealSpec {
-		return feat.NewRealSpec(new(AddConst))
-	})
+	featset.RegisterReal("conv", func() featset.Real { return new(ConvMulti) })
+	featset.RegisterReal("conv-each", func() featset.Real { return new(ConvEach) })
+	featset.RegisterReal("add-const", func() featset.Real { return new(AddConst) })
 }
 
 // ConvMulti represents multi-channel convolution.
@@ -38,9 +32,11 @@ func (phi *ConvMulti) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return phi.Filters.Corr(x), nil
 }
 
-func (phi *ConvMulti) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"conv", feat.NewRealSpec(phi)}
+func (phi *ConvMulti) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"conv", phi}
 }
+
+func (phi *ConvMulti) Transform() featset.Real { return phi }
 
 // ConvEach applies the same single-channel filters to every channel.
 type ConvEach struct {
@@ -66,9 +62,11 @@ func (phi *ConvEach) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *ConvEach) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"conv-each", feat.NewRealSpec(phi)}
+func (phi *ConvEach) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"conv-each", phi}
 }
+
+func (phi *ConvEach) Transform() featset.Real { return phi }
 
 // AddConst adds a constant to every pixel.
 type AddConst []float64
@@ -91,6 +89,8 @@ func (phi *AddConst) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-func (phi *AddConst) Marshaler() *feat.RealMarshaler {
-	return &feat.RealMarshaler{"add-const", feat.NewRealSpec(phi)}
+func (phi *AddConst) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"add-const", phi}
 }
+
+func (phi *AddConst) Transform() featset.Real { return phi }
