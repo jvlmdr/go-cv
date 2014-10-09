@@ -111,9 +111,7 @@ type OfGray struct{ Real }
 func (phi *OfGray) Rate() int { return phi.Real.Rate() }
 
 func (phi *OfGray) Apply(im image.Image) (*rimg64.Multi, error) {
-	// toGray never returns an error.
-	x, _ := toGray(im)
-	return phi.Real.Apply(x)
+	return phi.Real.Apply(toGray(im))
 }
 
 // OfRGB describes a real transform applied to the RGB channels of an image.

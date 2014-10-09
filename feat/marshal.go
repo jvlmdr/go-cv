@@ -1,8 +1,10 @@
 package feat
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 type ImageMarshalable interface {
@@ -82,36 +84,80 @@ func (m *RealMarshaler) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// SimpleImageSpec wraps a simple transform.
-type SimpleImageSpec struct {
+func NewImageSpec(phi ImageMarshalable) ImageSpec {
+	return &simpleImageSpec{phi}
+}
+
+// simpleImageSpec wraps a simple transform.
+type simpleImageSpec struct {
 	Phi ImageMarshalable
 }
 
-func (m *SimpleImageSpec) Transform() ImageMarshalable {
+func (m *simpleImageSpec) Transform() ImageMarshalable {
 	return m.Phi
 }
 
-func (m *SimpleImageSpec) MarshalJSON() ([]byte, error) {
+func (m *simpleImageSpec) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.Phi)
 }
 
-func (m *SimpleImageSpec) UnmarshalJSON(p []byte) error {
+func (m *simpleImageSpec) UnmarshalJSON(p []byte) error {
 	return json.Unmarshal(p, m.Phi)
 }
 
-// SimpleRealSpec wraps a simple transform.
-type SimpleRealSpec struct {
+func NewRealSpec(phi RealMarshalable) RealSpec {
+	return &simpleRealSpec{phi}
+}
+
+// simpleRealSpec wraps a simple transform.
+type simpleRealSpec struct {
 	Phi RealMarshalable
 }
 
-func (m *SimpleRealSpec) Transform() RealMarshalable {
+func (m *simpleRealSpec) Transform() RealMarshalable {
 	return m.Phi
 }
 
-func (m *SimpleRealSpec) MarshalJSON() ([]byte, error) {
+func (m *simpleRealSpec) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.Phi)
 }
 
-func (m *SimpleRealSpec) UnmarshalJSON(p []byte) error {
+func (m *simpleRealSpec) UnmarshalJSON(p []byte) error {
 	return json.Unmarshal(p, m.Phi)
+}
+
+func TestRealMarshaler(phi RealMarshalable) error {
+	m := phi.Marshaler()
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(m); err != nil {
+		return err
+	}
+	var u RealMarshaler
+	if err := json.NewDecoder(&b).Decode(&u); err != nil {
+		return err
+	}
+	got := u.Spec.Transform()
+	if !reflect.DeepEqual(phi, got) {
+		err := fmt.Errorf("encode and decode: want %#v, got %#v", phi, got)
+		return err
+	}
+	return nil
+}
+
+func TestImageMarshaler(phi ImageMarshalable) error {
+	m := phi.Marshaler()
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(m); err != nil {
+		return err
+	}
+	var u ImageMarshaler
+	if err := json.NewDecoder(&b).Decode(&u); err != nil {
+		return err
+	}
+	got := u.Spec.Transform()
+	if !reflect.DeepEqual(phi, got) {
+		err := fmt.Errorf("encode and decode: want %#v, got %#v", phi, got)
+		return err
+	}
+	return nil
 }
