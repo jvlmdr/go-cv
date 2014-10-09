@@ -10,7 +10,9 @@ import (
 )
 
 func init() {
-	feat.RegisterReal("max-pool", func() feat.Real { return new(MaxPool) })
+	feat.RegisterReal("max-pool", func() feat.RealSpec {
+		return feat.NewRealSpec(new(MaxPool))
+	})
 }
 
 type MaxPool struct {
@@ -18,9 +20,9 @@ type MaxPool struct {
 	Stride int
 }
 
-func (phi MaxPool) Rate() int { return phi.Stride }
+func (phi *MaxPool) Rate() int { return phi.Stride }
 
-func (phi MaxPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
+func (phi *MaxPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	if phi.Field.X <= 0 || phi.Field.Y <= 0 {
 		err := fmt.Errorf("invalid field size: %v", phi.Field)
 		return nil, err
@@ -50,7 +52,6 @@ func (phi MaxPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
-//	// CorrDec performs correlation and then decimates the result.
-//	type CorrDec struct {
-//		Stride int
-//	}
+func (phi *MaxPool) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"max-pool", feat.NewRealSpec(phi)}
+}

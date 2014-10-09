@@ -8,10 +8,18 @@ import (
 )
 
 func init() {
-	feat.RegisterReal("pos", func() feat.Real { return new(PosPart) })
-	feat.RegisterReal("pos-neg", func() feat.Real { return new(PosNegPart) })
-	feat.RegisterReal("is-pos", func() feat.Real { return new(IsPos) })
-	feat.RegisterReal("sign", func() feat.Real { return new(Sign) })
+	feat.RegisterReal("pos", func() feat.RealSpec {
+		return feat.NewRealSpec(new(PosPart))
+	})
+	feat.RegisterReal("pos-neg", func() feat.RealSpec {
+		return feat.NewRealSpec(new(PosNegPart))
+	})
+	feat.RegisterReal("is-pos", func() feat.RealSpec {
+		return feat.NewRealSpec(new(IsPos))
+	})
+	feat.RegisterReal("sign", func() feat.RealSpec {
+		return feat.NewRealSpec(new(Sign))
+	})
 }
 
 // PosPart takes the positive part of the input.
@@ -29,6 +37,10 @@ func (phi *PosPart) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		}
 	}
 	return y, nil
+}
+
+func (phi *PosPart) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"pos", nil}
 }
 
 // PosNegPart splits the input into its positive and negative parts.
@@ -49,6 +61,10 @@ func (phi *PosNegPart) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		}
 	}
 	return y, nil
+}
+
+func (phi *PosNegPart) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"pos-neg", nil}
 }
 
 func posNegPart(x float64) (pos, neg float64) {
@@ -80,6 +96,10 @@ func (phi *IsPos) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return y, nil
 }
 
+func (phi *IsPos) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"is-pos", nil}
+}
+
 // Sign returns 1 if positive, -1 if negative.
 type Sign struct{}
 
@@ -95,6 +115,10 @@ func (phi *Sign) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		}
 	}
 	return y, nil
+}
+
+func (phi *Sign) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"sign", nil}
 }
 
 func sign(x float64) float64 {

@@ -9,8 +9,15 @@ import (
 )
 
 func init() {
-	feat.RegisterReal("conv", func() feat.Real { return new(ConvMulti) })
-	feat.RegisterReal("conv-each", func() feat.Real { return new(ConvEach) })
+	feat.RegisterReal("conv", func() feat.RealSpec {
+		return feat.NewRealSpec(new(ConvMulti))
+	})
+	feat.RegisterReal("conv-each", func() feat.RealSpec {
+		return feat.NewRealSpec(new(ConvEach))
+	})
+	feat.RegisterReal("add-const", func() feat.RealSpec {
+		return feat.NewRealSpec(new(AddConst))
+	})
 }
 
 // ConvMulti represents multi-channel convolution.
@@ -29,6 +36,10 @@ func (phi *ConvMulti) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		return nil, err
 	}
 	return phi.Filters.Corr(x), nil
+}
+
+func (phi *ConvMulti) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"conv", feat.NewRealSpec(phi)}
 }
 
 // ConvEach applies the same single-channel filters to every channel.
@@ -53,4 +64,33 @@ func (phi *ConvEach) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		}
 	}
 	return y, nil
+}
+
+func (phi *ConvEach) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"conv-each", feat.NewRealSpec(phi)}
+}
+
+// AddConst adds a constant to every pixel.
+type AddConst []float64
+
+func (phi *AddConst) Rate() int { return 1 }
+
+func (phi *AddConst) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
+	if x.Channels != len(*phi) {
+		err := fmt.Errorf("channels: image has %d, filter bank has %d", x.Channels, len(*phi))
+		return nil, err
+	}
+	y := rimg64.NewMulti(x.Width, x.Height, x.Channels)
+	for u := 0; u < x.Width; u++ {
+		for v := 0; v < x.Height; v++ {
+			for p := 0; p < x.Channels; p++ {
+				y.Set(u, v, p, x.At(u, v, p)+(*phi)[p])
+			}
+		}
+	}
+	return y, nil
+}
+
+func (phi *AddConst) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"add-const", feat.NewRealSpec(phi)}
 }

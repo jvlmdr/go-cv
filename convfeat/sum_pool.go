@@ -9,7 +9,9 @@ import (
 )
 
 func init() {
-	feat.RegisterReal("sum-pool", func() feat.Real { return new(SumPool) })
+	feat.RegisterReal("sum-pool", func() feat.RealSpec {
+		return feat.NewRealSpec(new(SumPool))
+	})
 }
 
 type SumPool struct {
@@ -46,4 +48,8 @@ func (phi SumPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		}
 	}
 	return y, nil
+}
+
+func (phi *SumPool) Marshaler() *feat.RealMarshaler {
+	return &feat.RealMarshaler{"sum-pool", feat.NewRealSpec(phi)}
 }
