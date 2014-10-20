@@ -3,6 +3,8 @@ package detect
 import (
 	"image"
 	"math"
+
+	"github.com/jvlmdr/go-cv/feat"
 )
 
 type PadRect struct {
@@ -12,11 +14,11 @@ type PadRect struct {
 	Int image.Rectangle
 }
 
-// Creates a padded rectangle whose interior is size with uniform padding on all sides.
-func Pad(size image.Point, pad int) PadRect {
+// Creates a padded rectangle whose interior is size with the given margin.
+func Pad(size image.Point, m feat.Margin) PadRect {
 	return PadRect{
-		image.Pt(size.X+2*pad, size.Y+2*pad),
-		image.Rectangle{image.ZP, size}.Add(image.Pt(pad, pad)),
+		Size: image.Pt(size.X+m.Left+m.Right, size.Y+m.Top+m.Bottom),
+		Int:  image.Rectangle{Max: size}.Add(m.TopLeft()),
 	}
 }
 
