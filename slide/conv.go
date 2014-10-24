@@ -18,6 +18,16 @@ func Conv(f, g *rimg64.Image) *rimg64.Image {
 	return conv(f, g, false)
 }
 
+func Flip(f *rimg64.Image) *rimg64.Image {
+	g := rimg64.New(f.Width, f.Height)
+	for i := 0; i < f.Width; i++ {
+		for j := 0; j < f.Height; j++ {
+			g.Set(f.Width-1-i, f.Height-1-j, f.At(i, j))
+		}
+	}
+	return g
+}
+
 // Corr computes correlation of template g with image f.
 // Returns the inner product at all positions such that g lies entirely within f.
 //	If h = corr(f, g), then h(t) = sum_{tau} f(t+tau) g(tau).
@@ -49,7 +59,7 @@ func conv(f, g *rimg64.Image, corr bool) *rimg64.Image {
 }
 
 func convNaive(f, g *rimg64.Image, corr bool) *rimg64.Image {
-	r := ValidRect(f.Size(), g.Size(), corr)
+	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	for i := r.Min.X; i < r.Max.X; i++ {
 		for j := r.Min.Y; j < r.Max.Y; j++ {
@@ -93,7 +103,7 @@ func convFFT(f, g *rimg64.Image, work image.Point, corr bool) *rimg64.Image {
 	// Take inverse transform.
 	x = fftw.IFFT2(x)
 
-	r := ValidRect(f.Size(), g.Size(), corr)
+	r := validRect(f.Size(), g.Size(), corr)
 	// Extract desired region.
 	h := rimg64.New(r.Dx(), r.Dy())
 	// Scale such that convolution theorem holds.

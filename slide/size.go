@@ -11,10 +11,10 @@ func ValidSize(f, g image.Point) image.Point {
 	return h
 }
 
-// ValidRect returns the region of non-periodic convolution
+// validRect returns the region of non-periodic convolution
 // (or correlation) of a template g with an image f.
 // It is assumed that both are packed in the top left corner.
-func ValidRect(f, g image.Point, corr bool) image.Rectangle {
+func validRect(f, g image.Point, corr bool) image.Rectangle {
 	// Compute size of region.
 	var s image.Point
 	s.X = max(f.X-g.X+1, 0)
@@ -24,4 +24,13 @@ func ValidRect(f, g image.Point, corr bool) image.Rectangle {
 		return r
 	}
 	return r.Add(image.Pt(g.X-1, g.Y-1))
+}
+
+// ValidSize returns the number of positions such that
+// the template g lies entirely inside the image f.
+func ValidSizeStride(f, g image.Point, k int) image.Point {
+	h := ValidSize(f, g)
+	// Divide and round up.
+	h.X, h.Y = ceilDiv(h.X, k), ceilDiv(h.Y, k)
+	return h
 }

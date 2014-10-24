@@ -3,7 +3,6 @@ package slide
 import (
 	"fmt"
 	"image"
-	"log"
 	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
@@ -28,9 +27,6 @@ func errIfChannelsNotEq(f, g *rimg64.Multi) error {
 // Performs correlation of multi-channel images.
 // Returns sum over channels.
 func convMulti(f, g *rimg64.Multi, corr bool) *rimg64.Image {
-	log.Printf("slide %dx%dx%d template over %dx%dx%d image",
-		g.Width, g.Height, g.Channels, f.Width, f.Height, f.Channels,
-	)
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
@@ -54,7 +50,7 @@ func convMulti(f, g *rimg64.Multi, corr bool) *rimg64.Image {
 }
 
 func convMultiNaive(f, g *rimg64.Multi, corr bool) *rimg64.Image {
-	r := ValidRect(f.Size(), g.Size(), corr)
+	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	for i := r.Min.X; i < r.Max.X; i++ {
 		for j := r.Min.Y; j < r.Max.Y; j++ {
@@ -86,7 +82,7 @@ func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) *rimg64.Image
 	ifftX := fftw.NewPlan2(x, x, fftw.Backward, fftw.Estimate)
 	defer ifftX.Destroy()
 
-	r := ValidRect(f.Size(), g.Size(), corr)
+	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	n := float64(work.X * work.Y)
 

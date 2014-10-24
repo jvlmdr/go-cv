@@ -61,12 +61,7 @@ func TestConv_vsFlipCorr(t *testing.T) {
 	f := randImage(M, N)
 	g := randImage(m, n)
 	// Flip g to obtain h.
-	h := rimg64.New(m, n)
-	for u := 0; u < m; u++ {
-		for v := 0; v < n; v++ {
-			h.Set(u, v, g.At(m-1-u, n-1-v))
-		}
-	}
+	h := slide.Flip(g)
 	gConvF := slide.Conv(f, g)
 	gCorrF := slide.Corr(f, g)
 	hConvF := slide.Conv(f, h)

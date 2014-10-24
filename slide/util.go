@@ -1,5 +1,7 @@
 package slide
 
+import "image"
+
 func min(a, b int) int {
 	if b < a {
 		return b
@@ -21,4 +23,12 @@ func logb(x int) int {
 		n++
 	}
 	return n
+}
+
+func ceilDiv(a, b int) int {
+	return (a + b - 1) / b
+}
+
+func ceilDivPt(a image.Point, b int) image.Point {
+	return image.Pt(ceilDiv(a.X, b), ceilDiv(a.Y, b))
 }
