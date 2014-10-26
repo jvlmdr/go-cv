@@ -29,7 +29,10 @@ func (phi *MaxPool) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		err := fmt.Errorf("invalid stride: %d", phi.Stride)
 		return nil, err
 	}
-	size := x.Size().Sub(phi.Field).Add(image.Pt(1, 1)).Div(phi.Stride)
+	size := image.Pt(
+		ceilDiv(x.Width-phi.Field.X+1, phi.Stride),
+		ceilDiv(x.Height-phi.Field.Y+1, phi.Stride),
+	)
 	y := rimg64.NewMulti(size.X, size.Y, x.Channels)
 	for i := 0; i < y.Width; i++ {
 		for j := 0; j < y.Height; j++ {

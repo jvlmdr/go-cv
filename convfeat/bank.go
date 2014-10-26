@@ -24,6 +24,16 @@ func (bank *FilterBank) Corr(x *rimg64.Image) *rimg64.Multi {
 	return y
 }
 
+func (bank *FilterBank) CorrStride(x *rimg64.Image, k int) *rimg64.Multi {
+	size := slide.ValidSizeStride(x.Size(), bank.Field, k)
+	y := rimg64.NewMulti(size.X, size.Y, len(bank.List))
+	// Convolve y with each filter in the list.
+	for i, a := range bank.List {
+		y.SetChannel(i, slide.CorrStride(x, a, k))
+	}
+	return y
+}
+
 // FilterBankMulti describes a collection of multi-channel filters.
 // All filters must have the same dimension.
 type FilterBankMulti struct {
@@ -38,6 +48,16 @@ func (bank *FilterBankMulti) Corr(x *rimg64.Multi) *rimg64.Multi {
 	// Convolve y with each filter in the list.
 	for i, a := range bank.List {
 		y.SetChannel(i, slide.CorrMulti(x, a))
+	}
+	return y
+}
+
+func (bank *FilterBankMulti) CorrStride(x *rimg64.Multi, k int) *rimg64.Multi {
+	size := slide.ValidSizeStride(x.Size(), bank.Field, k)
+	y := rimg64.NewMulti(size.X, size.Y, len(bank.List))
+	// Convolve y with each filter in the list.
+	for i, a := range bank.List {
+		y.SetChannel(i, slide.CorrMultiStride(x, a, k))
 	}
 	return y
 }

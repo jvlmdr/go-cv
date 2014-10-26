@@ -12,14 +12,16 @@ func init() {
 	featset.RegisterReal("conv", func() featset.Real { return new(ConvMulti) })
 	featset.RegisterReal("conv-each", func() featset.Real { return new(ConvEach) })
 	featset.RegisterReal("add-const", func() featset.Real { return new(AddConst) })
+	featset.RegisterReal("scale", func() featset.Real { return new(Scale) })
 }
 
 // ConvMulti represents multi-channel convolution.
 type ConvMulti struct {
+	Stride  int
 	Filters *FilterBankMulti
 }
 
-func (phi *ConvMulti) Rate() int { return 1 }
+func (phi *ConvMulti) Rate() int { return phi.Stride }
 
 func (phi *ConvMulti) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	if x.Channels != phi.Filters.NumIn {
@@ -29,7 +31,10 @@ func (phi *ConvMulti) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 		)
 		return nil, err
 	}
-	return phi.Filters.Corr(x), nil
+	if phi.Stride <= 1 {
+		return phi.Filters.Corr(x), nil
+	}
+	return phi.Filters.CorrStride(x, phi.Stride), nil
 }
 
 func (phi *ConvMulti) Marshaler() *featset.RealMarshaler {
@@ -94,3 +99,26 @@ func (phi *AddConst) Marshaler() *featset.RealMarshaler {
 }
 
 func (phi *AddConst) Transform() featset.Real { return phi }
+
+// Scale multiplies every pixel by a constant.
+type Scale float64
+
+func (phi *Scale) Rate() int { return 1 }
+
+func (phi *Scale) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
+	y := rimg64.NewMulti(x.Width, x.Height, x.Channels)
+	for u := 0; u < x.Width; u++ {
+		for v := 0; v < x.Height; v++ {
+			for p := 0; p < x.Channels; p++ {
+				y.Set(u, v, p, float64(*phi)*x.At(u, v, p))
+			}
+		}
+	}
+	return y, nil
+}
+
+func (phi *Scale) Marshaler() *featset.RealMarshaler {
+	return &featset.RealMarshaler{"scale", phi}
+}
+
+func (phi *Scale) Transform() featset.Real { return phi }

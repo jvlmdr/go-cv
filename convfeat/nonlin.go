@@ -24,7 +24,7 @@ func (phi *PosPart) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	for i := 0; i < x.Width; i++ {
 		for j := 0; j < x.Height; j++ {
 			for k := 0; k < x.Channels; k++ {
-				y.Set(i, j, k, math.Abs(x.At(i, j, k)))
+				y.Set(i, j, k, math.Max(0, x.At(i, j, k)))
 			}
 		}
 	}
