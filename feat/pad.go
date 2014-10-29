@@ -19,12 +19,16 @@ func (m Margin) TopLeft() image.Point {
 	return image.Pt(m.Left, m.Top)
 }
 
+func (m Margin) BottomRight() image.Point {
+	return image.Pt(m.Right, m.Bottom)
+}
+
 func (m Margin) AddTo(r image.Rectangle) image.Rectangle {
-	r.Min.X -= m.Left
-	r.Min.Y -= m.Top
-	r.Max.X += m.Right
-	r.Max.Y += m.Bottom
-	return r
+	return image.Rectangle{r.Min.Sub(m.TopLeft()), r.Max.Add(m.BottomRight())}
+}
+
+func (m Margin) SubFrom(r image.Rectangle) image.Rectangle {
+	return image.Rectangle{r.Min.Add(m.TopLeft()), r.Max.Sub(m.BottomRight())}
 }
 
 func UniformMargin(x int) Margin {
