@@ -55,6 +55,55 @@ func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) ([]Det, err
 	return dets, nil
 }
 
+func minDims(tmpls []*FeatTmpl) image.Point {
+	var x, y int
+	for i, tmpl := range tmpls {
+		if i == 0 {
+			x, y = tmpl.Size.X, tmpl.Size.Y
+			continue
+		}
+		if tmpl.Size.X < x {
+			x = tmpl.Size.X
+		}
+		if tmpl.Size.Y < y {
+			y = tmpl.Size.Y
+		}
+	}
+	return image.Pt(x, y)
+}
+
+func MultiScaleMaxEnsemble(im image.Image, tmpls []*FeatTmpl, opts MultiScaleOpts) ([]Det, error) {
+	if len(tmpls) == 0 {
+		return nil, nil
+	}
+	scales := imgpyr.Scales(im.Bounds().Size(), minDims(tmpls), opts.MaxScale, opts.PyrStep).Elems()
+	ims := imgpyr.NewGenerator(im, scales, opts.Interp)
+	pyr := featpyr.NewGenerator(ims, opts.Transform, opts.Pad)
+	var dets []Det
+	l, err := pyr.First()
+	if err != nil {
+		return nil, err
+	}
+	for l != nil {
+		for _, tmpl := range tmpls {
+			pts := detectPoints(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
+			// Convert to scored rectangles in the image.
+			for _, pt := range pts {
+				rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)
+				dets = append(dets, Det{pt.Score + tmpl.Bias, rect})
+			}
+		}
+		var err error
+		l, err = pyr.Next(l)
+		if err != nil {
+			return nil, err
+		}
+	}
+	Sort(dets)
+	dets = Suppress(dets, opts.SupprFilter.MaxNum, opts.SupprFilter.Overlap)
+	return dets, nil
+}
+
 // Performs detection and non-max suppression.
 // Returns a list of scored detection windows.
 // Windows are specified as rectangles in the original pixel image.

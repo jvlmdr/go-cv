@@ -9,6 +9,7 @@ import (
 type FeatTmpl struct {
 	// Template in feature space.
 	Image *rimg64.Multi
+	Bias  float64
 	// Size in pixels.
 	Size image.Point
 	// Interior of window in pixels.
