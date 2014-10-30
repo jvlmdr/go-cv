@@ -64,7 +64,10 @@ type DetPos struct {
 //
 // If localmax is true, then points which have a neighbor greater than them are excluded.
 // Any windows less than minscore are excluded.
-func detectPoints(im *rimg64.Multi, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
+func detectPoints(im, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
+	if im.Width < tmpl.Width || im.Height < tmpl.Height {
+		return nil
+	}
 	resp := slide.CorrMulti(im, tmpl)
 	var dets []DetPos
 	// Iterate over positions and check criteria.
