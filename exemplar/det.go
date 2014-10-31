@@ -1,22 +1,22 @@
-package detect
+package exemplar
 
 import (
-	"image"
 	"math"
 	"sort"
+
+	"github.com/jvlmdr/go-cv/detect"
 )
 
-// Det describes one detection.
 type Det struct {
-	Score float64
-	Rect  image.Rectangle
+	detect.Det
+	Tmpl string
 }
 
-// Det describes one detection.
-type DetMaxEnsemble struct {
-	Score float64
-	Rect  image.Rectangle
-}
+// DetSlice satisfies detect.DetList.
+type DetSlice []Det
+
+func (dets DetSlice) Len() int            { return len(dets) }
+func (dets DetSlice) At(i int) detect.Det { return dets[i].Det }
 
 // Sort sorts a list of detections descending by score.
 func Sort(dets []Det) {

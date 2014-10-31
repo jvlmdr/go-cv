@@ -5,15 +5,19 @@ import (
 	"image"
 )
 
+type Val struct {
+	// Is this a true detection?
+	True bool
+	// If so, give its corresponding annotation.
+	Ref image.Rectangle
+}
+
 // ValDet describes a validated detection,
 // a detection that has been compared to ground truth and
 // deemed true or false.
 type ValDet struct {
 	Det
-	// Is this a true detection?
-	True bool
-	// If so, give its corresponding annotation.
-	Ref image.Rectangle
+	Val
 }
 
 // ValImage describes the validation of a set of detections in one image.
@@ -50,11 +54,47 @@ func (im *ValImage) Set() *ValSet {
 // Sufficient overlap to match a reference is assessed using intersection-over-union.
 // Sufficient overlap to ignore a detection is assessed by what fraction of the detection is covered.
 func Validate(dets []Det, refs, ignore []image.Rectangle, refMinIOU, ignoreMinCover float64) *ValImage {
-	im := matchesToValImage(Match(dets, refs, refMinIOU), dets, refs)
-	if len(ignore) > 0 {
-		im.Dets = removeIfIgnored(im.Dets, ignore, ignoreMinCover)
+	vals, miss := ValidateList(DetSlice(dets), refs, ignore, refMinIOU, ignoreMinCover)
+	valdets := make([]ValDet, len(dets))
+	for i := range dets {
+		valdets[i] = ValDet{dets[i], vals[i]}
 	}
-	return im
+	return &ValImage{valdets, miss}
+}
+
+func ValidateList(dets DetList, refs, ignore []image.Rectangle, refMinIOU, ignoreMinCover float64) (vals []Val, miss []image.Rectangle) {
+	// Match rectangles and then remove any detections (incorrect or otherwise) which are ignored.
+	m := Match(dets, refs, refMinIOU)
+	// Label each detection as true positive or false positive.
+	vals = make([]Val, dets.Len())
+	// Record which references were matched.
+	used := make(map[int]bool)
+	for i := 0; i < dets.Len(); i++ {
+		det := dets.At(i)
+		j, p := m[i]
+		if !p {
+			// Detection did not have a match.
+			// Check whether to ignore the false positive.
+			if anyCovers(ignore, det.Rect, ignoreMinCover) {
+				continue
+			}
+			vals[i] = Val{True: false}
+			continue
+		}
+		if used[j] {
+			panic("already matched")
+		}
+		used[j] = true
+		vals[i] = Val{True: true, Ref: refs[j]}
+	}
+	miss = make([]image.Rectangle, 0, len(refs)-len(used))
+	for j, ref := range refs {
+		if used[j] {
+			continue
+		}
+		miss = append(miss, ref)
+	}
+	return vals, miss
 }
 
 // Match takes a list of detections ordered (descending) by score
@@ -65,7 +105,7 @@ func Validate(dets []Det, refs, ignore []image.Rectangle, refMinIOU, ignoreMinCo
 //
 // Overlap is evaluated using intersection over union.
 // The scores of the detections are not used.
-func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
+func Match(dets DetList, refs []image.Rectangle, mininter float64) map[int]int {
 	// Map from dets to refs.
 	m := make(map[int]int)
 	// List of indices remaining in refs.
@@ -74,7 +114,8 @@ func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 		r.PushBack(j)
 	}
 
-	for i, det := range dets {
+	for i := 0; i < dets.Len(); i++ {
+		det := dets.At(i)
 		var maxinter float64
 		var argmax *list.Element
 		for e := r.Front(); e != nil; e = e.Next() {
@@ -96,44 +137,6 @@ func Match(dets []Det, refs []image.Rectangle, mininter float64) map[int]int {
 		m[i] = r.Remove(argmax).(int)
 	}
 	return m
-}
-
-func matchesToValImage(m map[int]int, dets []Det, refs []image.Rectangle) *ValImage {
-	// Label each detection as true positive or false positive.
-	valdets := make([]ValDet, len(dets))
-	// Record which references were matched.
-	used := make(map[int]bool)
-	for i, det := range dets {
-		j, p := m[i]
-		if !p {
-			valdets[i] = ValDet{Det: det, True: false}
-			continue
-		}
-		if used[j] {
-			panic("already matched")
-		}
-		used[j] = true
-		valdets[i] = ValDet{Det: det, True: true, Ref: refs[j]}
-	}
-	misses := make([]image.Rectangle, 0, len(refs)-len(used))
-	for j, ref := range refs {
-		if used[j] {
-			continue
-		}
-		misses = append(misses, ref)
-	}
-	return &ValImage{valdets, misses}
-}
-
-func removeIfIgnored(dets []ValDet, ignore []image.Rectangle, minCover float64) []ValDet {
-	var keep []ValDet
-	for _, det := range dets {
-		if !det.True && anyCovers(ignore, det.Rect, minCover) {
-			continue
-		}
-		keep = append(keep, det)
-	}
-	return keep
 }
 
 func anyCovers(ys []image.Rectangle, x image.Rectangle, minCover float64) bool {

@@ -38,60 +38,11 @@ func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) ([]Det, err
 		return nil, err
 	}
 	for l != nil {
-		pts := detectPoints(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
+		pts := Points(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
 		// Convert to scored rectangles in the image.
 		for _, pt := range pts {
 			rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)
 			dets = append(dets, Det{pt.Score, rect})
-		}
-		var err error
-		l, err = pyr.Next(l)
-		if err != nil {
-			return nil, err
-		}
-	}
-	Sort(dets)
-	dets = Suppress(dets, opts.SupprFilter.MaxNum, opts.SupprFilter.Overlap)
-	return dets, nil
-}
-
-func minDims(tmpls []*FeatTmpl) image.Point {
-	var x, y int
-	for i, tmpl := range tmpls {
-		if i == 0 {
-			x, y = tmpl.Size.X, tmpl.Size.Y
-			continue
-		}
-		if tmpl.Size.X < x {
-			x = tmpl.Size.X
-		}
-		if tmpl.Size.Y < y {
-			y = tmpl.Size.Y
-		}
-	}
-	return image.Pt(x, y)
-}
-
-func MultiScaleMaxEnsemble(im image.Image, tmpls []*FeatTmpl, opts MultiScaleOpts) ([]Det, error) {
-	if len(tmpls) == 0 {
-		return nil, nil
-	}
-	scales := imgpyr.Scales(im.Bounds().Size(), minDims(tmpls), opts.MaxScale, opts.PyrStep).Elems()
-	ims := imgpyr.NewGenerator(im, scales, opts.Interp)
-	pyr := featpyr.NewGenerator(ims, opts.Transform, opts.Pad)
-	var dets []Det
-	l, err := pyr.First()
-	if err != nil {
-		return nil, err
-	}
-	for l != nil {
-		for _, tmpl := range tmpls {
-			pts := detectPoints(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
-			// Convert to scored rectangles in the image.
-			for _, pt := range pts {
-				rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)
-				dets = append(dets, Det{pt.Score + tmpl.Bias, rect})
-			}
 		}
 		var err error
 		l, err = pyr.Next(l)
@@ -136,7 +87,7 @@ func detectPyrPoints(pyr *featpyr.Pyramid, tmpl *rimg64.Multi, localmax bool, mi
 			break
 		}
 		// Get points from each level.
-		imdets := detectPoints(im, tmpl, localmax, minscore)
+		imdets := Points(im, tmpl, localmax, minscore)
 		// Append level to each point.
 		for _, imdet := range imdets {
 			pyrpt := imgpyr.Point{level, imdet.Point}

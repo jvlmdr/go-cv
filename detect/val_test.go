@@ -205,7 +205,7 @@ func TestMatch(t *testing.T) {
 	}
 
 	for _, x := range cases {
-		match := detect.Match(x.Dets, x.Refs, x.MinInter)
+		match := detect.Match(detect.DetSlice(x.Dets), x.Refs, x.MinInter)
 		if !reflect.DeepEqual(match, x.Match) {
 			s := fmt.Sprint(
 				"detections:\n\t", x.Dets, "\n",

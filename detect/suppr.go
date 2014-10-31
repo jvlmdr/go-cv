@@ -36,7 +36,7 @@ func Cover(a, b image.Rectangle) float64 {
 //	overlap := func(a, b image.Rectangle) bool { return detect.IOU(a, b) > 0.5 }
 //	dets = detect.Suppress(dets, 0, overlap)
 func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []Det {
-	inds := suppressSet(dets, maxnum, overlap)
+	inds := SuppressIndex(DetSlice(dets), maxnum, overlap)
 	subset := make([]Det, len(inds))
 	for i, ind := range inds {
 		subset[i] = dets[ind]
@@ -44,14 +44,14 @@ func Suppress(dets []Det, maxnum int, overlap OverlapFunc) []Det {
 	return subset
 }
 
-// SuppressSet performs non-max suppression and returns the indices to keep.
-func suppressSet(dets []Det, maxnum int, overlap OverlapFunc) []int {
-	if !sort.IsSorted(detsByScoreDesc(dets)) {
+// SuppressIndex performs non-max suppression and returns the indices to keep.
+func SuppressIndex(dets DetList, maxnum int, overlap OverlapFunc) []int {
+	if !sort.IsSorted(detListByScoreDesc{dets}) {
 		panic("not sorted")
 	}
 	// Copy into linked list.
 	rem := list.New()
-	for i := range dets {
+	for i := 0; i < dets.Len(); i++ {
 		rem.PushBack(i)
 	}
 	// Select best detection, remove those which overlap with it.
@@ -71,7 +71,7 @@ type SupprFilter struct {
 	Overlap OverlapFunc
 }
 
-func pop(rem *list.List, dets []Det, overlap OverlapFunc) int {
+func pop(rem *list.List, dets DetList, overlap OverlapFunc) int {
 	i := rem.Remove(rem.Front()).(int)
 	var next *list.Element
 	for e := rem.Front(); e != nil; e = next {
@@ -81,7 +81,7 @@ func pop(rem *list.List, dets []Det, overlap OverlapFunc) int {
 		j := e.Value.(int)
 		// Suppress if the rectangles are deemed to overlap.
 		// The first argument has the higher score.
-		if overlap(dets[i].Rect, dets[j].Rect) {
+		if overlap(dets.At(i).Rect, dets.At(j).Rect) {
 			// Remove.
 			rem.Remove(e)
 		}
