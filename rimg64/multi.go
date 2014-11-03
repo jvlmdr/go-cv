@@ -128,7 +128,7 @@ func FromColor(g image.Image) *Multi {
 // Does not modify either input.
 func (f *Multi) Plus(g *Multi) *Multi {
 	dst := NewMulti(f.Width, f.Height, f.Channels)
-	floats.Add(dst.Elems, f.Elems, g.Elems)
+	floats.AddTo(dst.Elems, f.Elems, g.Elems)
 	return dst
 }
 

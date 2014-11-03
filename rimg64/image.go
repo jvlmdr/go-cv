@@ -108,7 +108,7 @@ func FromGray(g image.Image) *Image {
 // Does not modify either input.
 func (f *Image) Plus(g *Image) *Image {
 	dst := New(f.Width, f.Height)
-	floats.Add(dst.Elems, f.Elems, g.Elems)
+	floats.AddTo(dst.Elems, f.Elems, g.Elems)
 	return dst
 }
 
