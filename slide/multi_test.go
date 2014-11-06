@@ -38,3 +38,45 @@ func TestCorrMulti_FFTVsNaive(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkCorrMultiFFT_640x480_3x3_4(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 4, true)
+}
+
+func BenchmarkCorrMultiFFT_640x480_3x3_128(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 128, true)
+}
+
+func BenchmarkCorrMultiFFT_640x480_16x16_4(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 4, true)
+}
+
+func BenchmarkCorrMultiFFT_640x480_16x16_128(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 128, true)
+}
+
+func BenchmarkCorrMultiNaive_640x480_3x3_4(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 4, false)
+}
+
+func BenchmarkCorrMultiNaive_640x480_3x3_128(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 128, false)
+}
+
+func BenchmarkCorrMultiNaive_640x480_16x16_4(b *testing.B) {
+	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 4, false)
+}
+
+func benchmarkCorrMulti(b *testing.B, im, tmpl image.Point, c int, fft bool) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		f := randMulti(im.X, im.Y, c)
+		g := randMulti(tmpl.X, tmpl.Y, c)
+		b.StartTimer()
+		if fft {
+			slide.CorrMultiFFT(f, g)
+		} else {
+			slide.CorrMultiNaive(f, g)
+		}
+	}
+}

@@ -113,6 +113,8 @@ func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) *rimg64.Image
 	return h
 }
 
+// Assumes that f is no smaller than x.
+// Pads with zeros.
 func copyChannelTo(x *fftw.Array2, f *rimg64.Multi, p int) {
 	w, h := x.Dims()
 	for u := 0; u < w; u++ {
@@ -122,6 +124,15 @@ func copyChannelTo(x *fftw.Array2, f *rimg64.Multi, p int) {
 			} else {
 				x.Set(u, v, 0)
 			}
+		}
+	}
+}
+
+// Assumes that f is no smaller than x.
+func copyRealToChannel(f *rimg64.Multi, p int, x *fftw.Array2) {
+	for u := 0; u < f.Width; u++ {
+		for v := 0; v < f.Height; v++ {
+			f.Set(u, v, p, real(x.At(u, v)))
 		}
 	}
 }

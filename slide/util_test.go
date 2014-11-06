@@ -1,9 +1,12 @@
 package slide_test
 
 import (
+	"fmt"
+	"math"
 	"math/rand"
 
 	"github.com/jvlmdr/go-cv/rimg64"
+	"github.com/jvlmdr/go-cv/slide"
 )
 
 func randImage(width, height int) *rimg64.Image {
@@ -26,4 +29,37 @@ func randMulti(width, height, channels int) *rimg64.Multi {
 		}
 	}
 	return f
+}
+
+func randMultiBank(m, n, p, q int) *slide.MultiBank {
+	g := &slide.MultiBank{
+		Width:    m,
+		Height:   n,
+		Channels: p,
+		Filters:  make([]*rimg64.Multi, q),
+	}
+	for i := range g.Filters {
+		g.Filters[i] = randMulti(m, n, p)
+	}
+	return g
+}
+
+func errIfNotEqMulti(f, g *rimg64.Multi, eps float64) error {
+	if !f.Size().Eq(g.Size()) {
+		return fmt.Errorf("different size: %v, %v", f.Size(), g.Size())
+	}
+	if f.Channels != g.Channels {
+		return fmt.Errorf("different channels: %d, %d", f.Channels, g.Channels)
+	}
+	for i := 0; i < f.Width; i++ {
+		for j := 0; j < f.Height; j++ {
+			for k := 0; k < f.Channels; k++ {
+				a, b := f.At(i, j, k), g.At(i, j, k)
+				if math.Abs(a-b) > eps*math.Max(math.Abs(a), math.Abs(b)) {
+					return fmt.Errorf("different at x %d, y %d, c %d: %g, %g", i, j, k, a, b)
+				}
+			}
+		}
+	}
+	return nil
 }
