@@ -27,6 +27,9 @@ func Sequence(start, step, lim float64) GeoSeq {
 	n := math.Log(lim/start)/math.Log(step) + 1
 	// Round down.
 	m := int(math.Floor(n))
+	if m <= 0 {
+		m = 0
+	}
 	return GeoSeq{start, step, m}
 }
 
@@ -55,6 +58,9 @@ func (seq GeoSeq) Reverse() GeoSeq {
 }
 
 func (seq GeoSeq) Elems() []float64 {
+	if seq.Len <= 0 {
+		return nil
+	}
 	x := make([]float64, seq.Len)
 	for i := 0; i < seq.Len; i++ {
 		x[i] = seq.At(i)
