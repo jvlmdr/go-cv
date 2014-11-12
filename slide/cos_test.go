@@ -41,7 +41,7 @@ func TestCosCorr(t *testing.T) {
 		{2, 1, (3*4 + 1*1 + 5*3 + 2*3 + 4*2 + 1*1) / math.Sqrt(sqr(4)+sqr(1)+sqr(3)+sqr(3)+sqr(2)+sqr(1)) / gnorm},
 	}
 
-	h := slide.CosCorr(f, g, slide.FFT)
+	h := slide.CosCorr(f, g, slide.Auto)
 	if h.Width != 3 || h.Height != 2 {
 		t.Fatalf("wrong size: want %dx%d, got %dx%d", 3, 2, h.Width, h.Height)
 	}
@@ -93,7 +93,7 @@ func TestCosCorrMulti(t *testing.T) {
 
 	f := randMulti(w, h, c)
 	g := randMulti(m, n, c)
-	got := slide.CosCorrMulti(f, g, slide.FFT)
+	got := slide.CosCorrMulti(f, g, slide.Auto)
 	want := cosCorrMultiNaive(f, g)
 	if err := errIfNotEqImage(want, got, eps); err != nil {
 		t.Error(err)

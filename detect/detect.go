@@ -1,6 +1,7 @@
 package detect
 
 import (
+	"fmt"
 	"image"
 
 	"github.com/jvlmdr/go-cv/feat"
@@ -65,10 +66,29 @@ type DetPos struct {
 // If localmax is true, then points which have a neighbor greater than them are excluded.
 // Any windows less than minscore are excluded.
 func Points(im, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
+	return PointsOp(im, tmpl, localmax, minscore, Dot)
+}
+
+type Op int
+
+const (
+	Dot Op = iota
+	Cos
+)
+
+func PointsOp(im, tmpl *rimg64.Multi, localmax bool, minscore float64, op Op) []DetPos {
 	if im.Width < tmpl.Width || im.Height < tmpl.Height {
 		return nil
 	}
-	resp := slide.CorrMulti(im, tmpl)
+	var resp *rimg64.Image
+	switch op {
+	case Dot:
+		resp = slide.CorrMulti(im, tmpl)
+	case Cos:
+		resp = slide.CosCorrMulti(im, tmpl, slide.Auto)
+	default:
+		panic(fmt.Sprintf("unknown operation: %v", op))
+	}
 	var dets []DetPos
 	// Iterate over positions and check criteria.
 	for u := 0; u < resp.Width; u++ {

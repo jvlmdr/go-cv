@@ -10,11 +10,11 @@ import (
 )
 
 func ConvMulti(f, g *rimg64.Multi) *rimg64.Image {
-	return convMulti(f, g, false)
+	return convMultiAuto(f, g, false)
 }
 
 func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
-	return convMulti(f, g, true)
+	return convMultiAuto(f, g, true)
 }
 
 func errIfChannelsNotEq(f, g *rimg64.Multi) error {
@@ -26,7 +26,7 @@ func errIfChannelsNotEq(f, g *rimg64.Multi) error {
 
 // Performs correlation of multi-channel images.
 // Returns sum over channels.
-func convMulti(f, g *rimg64.Multi, corr bool) *rimg64.Image {
+func convMultiAuto(f, g *rimg64.Multi, corr bool) *rimg64.Image {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
