@@ -76,6 +76,55 @@ func NormCorrMulti(f, g *rimg64.Image) *rimg64.Image {
 	return convAuto(f, g, true)
 }
 
+// CosCorrMulti computes normalized cross-correlation without mean subtraction.
+func CosCorrMulti(f, g *rimg64.Multi, algo Algo) *rimg64.Image {
+	h := CorrMultiAlgo(f, g, algo)
+	if h == nil {
+		return h
+	}
+	gInvNorm := invNormMulti(g)
+	fSqr := squareMulti(f)
+	fSqrSum := rimg64.CumSum(fSqr)
+	// Normalize every element in the output.
+	for i := 0; i < h.Width; i++ {
+		for j := 0; j < h.Height; j++ {
+			rect := image.Rect(i, j, i+g.Width, j+g.Height)
+			fInvNorm := rectInvNorm(fSqrSum, rect)
+			h.Set(i, j, fInvNorm*gInvNorm*h.At(i, j))
+		}
+	}
+	return h
+}
+
+func invNormMulti(f *rimg64.Multi) float64 {
+	var norm float64
+	for i := 0; i < f.Width; i++ {
+		for j := 0; j < f.Height; j++ {
+			for k := 0; k < f.Channels; k++ {
+				norm += sqr(f.At(i, j, k))
+			}
+		}
+	}
+	norm = math.Sqrt(norm) // This cannot be negative.
+	if norm == 0 {
+		return 0
+	}
+	return 1 / norm
+}
+
+// Takes the sum over channels.
+func squareMulti(f *rimg64.Multi) *rimg64.Image {
+	g := rimg64.New(f.Width, f.Height)
+	for i := 0; i < f.Width; i++ {
+		for j := 0; j < f.Height; j++ {
+			for k := 0; k < f.Channels; k++ {
+				g.Set(i, j, g.At(i, j)+sqr(f.At(i, j, k)))
+			}
+		}
+	}
+	return g
+}
+
 // Used for floating-point precision.
 // Rather than A - B - C + D, computes A + B + C + D.
 // Only useful when original image was non-negative.

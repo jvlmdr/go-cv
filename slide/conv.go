@@ -1,32 +1,12 @@
 package slide
 
 import (
-	"fmt"
 	"image"
 	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
 )
-
-type Algo int
-
-const (
-	Naive Algo = iota
-	FFT
-	BLAS
-)
-
-func CorrAlgo(f, g *rimg64.Image, algo Algo) *rimg64.Image {
-	switch algo {
-	case Naive:
-		return CorrNaive(f, g)
-	case FFT:
-		return CorrFFT(f, g)
-	default:
-		panic(fmt.Sprintf("unknown algorithm: %g", algo))
-	}
-}
 
 // Conv computes convolution of template g with image f.
 // Returns the inner product at all positions such that g lies entirely within f.

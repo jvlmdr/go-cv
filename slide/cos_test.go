@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/gonum/floats"
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-cv/slide"
 )
@@ -51,5 +52,50 @@ func TestCosCorr(t *testing.T) {
 				c.I, c.J, c.Want, got,
 			)
 		}
+	}
+}
+
+// Explicitly forms vectors and computes normalized dot product.
+func cosCorrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
+	h := rimg64.New(f.Width-g.Width+1, f.Height-g.Height+1)
+	n := g.Width * g.Height * g.Channels
+	a := make([]float64, n)
+	b := make([]float64, n)
+	for i := 0; i < h.Width; i++ {
+		for j := 0; j < h.Height; j++ {
+			a = a[:0]
+			b = b[:0]
+			for u := 0; u < g.Width; u++ {
+				for v := 0; v < g.Height; v++ {
+					for p := 0; p < g.Channels; p++ {
+						a = append(a, f.At(i+u, j+v, p))
+						b = append(b, g.At(u, v, p))
+					}
+				}
+			}
+			floats.Scale(1/floats.Norm(a, 2), a)
+			floats.Scale(1/floats.Norm(b, 2), b)
+			h.Set(i, j, floats.Dot(a, b))
+		}
+	}
+	return h
+}
+
+func TestCosCorrMulti(t *testing.T) {
+	const (
+		m   = 4
+		n   = 3
+		w   = 20
+		h   = 16
+		c   = 3
+		eps = 1e-9
+	)
+
+	f := randMulti(w, h, c)
+	g := randMulti(m, n, c)
+	got := slide.CosCorrMulti(f, g, slide.FFT)
+	want := cosCorrMultiNaive(f, g)
+	if err := errIfNotEqImage(want, got, eps); err != nil {
+		t.Error(err)
 	}
 }

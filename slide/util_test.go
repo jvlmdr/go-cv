@@ -44,6 +44,21 @@ func randMultiBank(m, n, p, q int) *slide.MultiBank {
 	return g
 }
 
+func errIfNotEqImage(f, g *rimg64.Image, eps float64) error {
+	if !f.Size().Eq(g.Size()) {
+		return fmt.Errorf("different size: %v, %v", f.Size(), g.Size())
+	}
+	for i := 0; i < f.Width; i++ {
+		for j := 0; j < f.Height; j++ {
+			a, b := f.At(i, j), g.At(i, j)
+			if math.Abs(a-b) > eps*math.Max(math.Abs(a), math.Abs(b)) {
+				return fmt.Errorf("different at x %d, y %d: %g, %g", i, j, a, b)
+			}
+		}
+	}
+	return nil
+}
+
 func errIfNotEqMulti(f, g *rimg64.Multi, eps float64) error {
 	if !f.Size().Eq(g.Size()) {
 		return fmt.Errorf("different size: %v, %v", f.Size(), g.Size())
