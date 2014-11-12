@@ -32,3 +32,5 @@ func ceilDiv(a, b int) int {
 func ceilDivPt(a image.Point, b int) image.Point {
 	return image.Pt(ceilDiv(a.X, b), ceilDiv(a.Y, b))
 }
+
+func sqr(x float64) float64 { return x * x }

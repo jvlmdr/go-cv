@@ -1,12 +1,32 @@
 package slide
 
 import (
+	"fmt"
 	"image"
 	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
 )
+
+type Algo int
+
+const (
+	Naive Algo = iota
+	FFT
+	BLAS
+)
+
+func CorrAlgo(f, g *rimg64.Image, algo Algo) *rimg64.Image {
+	switch algo {
+	case Naive:
+		return CorrNaive(f, g)
+	case FFT:
+		return CorrFFT(f, g)
+	default:
+		panic(fmt.Sprintf("unknown algorithm: %g", algo))
+	}
+}
 
 // Conv computes convolution of template g with image f.
 // Returns the inner product at all positions such that g lies entirely within f.
@@ -15,7 +35,7 @@ import (
 //
 // Automatically selects between naive and Fourier-domain convolution.
 func Conv(f, g *rimg64.Image) *rimg64.Image {
-	return conv(f, g, false)
+	return convAuto(f, g, false)
 }
 
 func Flip(f *rimg64.Image) *rimg64.Image {
@@ -35,10 +55,10 @@ func Flip(f *rimg64.Image) *rimg64.Image {
 //
 // Automatically selects between naive and Fourier-domain convolution.
 func Corr(f, g *rimg64.Image) *rimg64.Image {
-	return conv(f, g, true)
+	return convAuto(f, g, true)
 }
 
-func conv(f, g *rimg64.Image, corr bool) *rimg64.Image {
+func convAuto(f, g *rimg64.Image, corr bool) *rimg64.Image {
 	// Size of output.
 	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
