@@ -22,7 +22,7 @@ func MultiScale(im image.Image, tmpls map[string]*detect.FeatTmpl, opts detect.M
 	}
 	for l != nil {
 		for key, tmpl := range tmpls {
-			pts := detect.Points(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
+			pts := detect.Points(l.Feat, tmpl.Image, tmpl.Bias, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
 			// Convert to scored rectangles in the image.
 			for _, pt := range pts {
 				rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)

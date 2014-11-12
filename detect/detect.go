@@ -36,7 +36,7 @@ func DetectImage(im image.Image, phi feat.Image, pad feat.Pad, tmpl *FeatTmpl, d
 // It returns an unordered list of scored rectangles.
 func Score(im *rimg64.Multi, margin feat.Margin, tmpl *FeatTmpl, rate int, opts DetFilter) []Det {
 	// Evaluate detector at all positions.
-	pts := Points(im, tmpl.Image, opts.LocalMax, opts.MinScore)
+	pts := Points(im, tmpl.Image, tmpl.Bias, opts.LocalMax, opts.MinScore)
 	// Convert positions in the feature image to rectangles in the original image.
 	dets := make([]Det, len(pts))
 	for i, det := range pts {
@@ -65,8 +65,8 @@ type DetPos struct {
 //
 // If localmax is true, then points which have a neighbor greater than them are excluded.
 // Any windows less than minscore are excluded.
-func Points(im, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
-	return PointsOp(im, tmpl, localmax, minscore, Dot)
+func Points(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore float64) []DetPos {
+	return PointsOp(im, tmpl, bias, localmax, minscore, Dot)
 }
 
 type CorrOp int
@@ -76,7 +76,7 @@ const (
 	Cos
 )
 
-func PointsOp(im, tmpl *rimg64.Multi, localmax bool, minscore float64, op CorrOp) []DetPos {
+func PointsOp(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore float64, op CorrOp) []DetPos {
 	if im.Width < tmpl.Width || im.Height < tmpl.Height {
 		return nil
 	}
@@ -93,7 +93,7 @@ func PointsOp(im, tmpl *rimg64.Multi, localmax bool, minscore float64, op CorrOp
 	// Iterate over positions and check criteria.
 	for u := 0; u < resp.Width; u++ {
 		for v := 0; v < resp.Height; v++ {
-			score := resp.At(u, v)
+			score := resp.At(u, v) + bias
 			if score < minscore {
 				continue
 			}

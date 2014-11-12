@@ -38,7 +38,7 @@ func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) ([]Det, err
 		return nil, err
 	}
 	for l != nil {
-		pts := Points(l.Feat, tmpl.Image, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
+		pts := Points(l.Feat, tmpl.Image, tmpl.Bias, opts.DetFilter.LocalMax, opts.DetFilter.MinScore)
 		// Convert to scored rectangles in the image.
 		for _, pt := range pts {
 			rect := pyr.ToImageRect(l.Image.Index, pt.Point, tmpl.Interior)
@@ -60,7 +60,7 @@ func MultiScale(im image.Image, tmpl *FeatTmpl, opts MultiScaleOpts) ([]Det, err
 // Windows are specified as rectangles in the original pixel image.
 func Pyramid(pyr *featpyr.Pyramid, tmpl *FeatTmpl, detopts DetFilter, suppropts SupprFilter) []Det {
 	// Get detections as top-left corners at some level.
-	featdets := detectPyrPoints(pyr, tmpl.Image, detopts.LocalMax, detopts.MinScore)
+	featdets := detectPyrPoints(pyr, tmpl.Image, tmpl.Bias, detopts.LocalMax, detopts.MinScore)
 	// Convert to rectangles in the image.
 	dets := make([]Det, len(featdets))
 	for i, featdet := range featdets {
@@ -80,14 +80,14 @@ type pyrDetPos struct {
 
 // Returns scored windows in image.
 // Windows are represented by the position of their top-left corner in the feature pyramid.
-func detectPyrPoints(pyr *featpyr.Pyramid, tmpl *rimg64.Multi, localmax bool, minscore float64) []pyrDetPos {
+func detectPyrPoints(pyr *featpyr.Pyramid, tmpl *rimg64.Multi, bias float64, localmax bool, minscore float64) []pyrDetPos {
 	var dets []pyrDetPos
 	for level, im := range pyr.Feats {
 		if im.Width < tmpl.Width || im.Height < tmpl.Height {
 			break
 		}
 		// Get points from each level.
-		imdets := Points(im, tmpl, localmax, minscore)
+		imdets := Points(im, tmpl, bias, localmax, minscore)
 		// Append level to each point.
 		for _, imdet := range imdets {
 			pyrpt := imgpyr.Point{level, imdet.Point}
