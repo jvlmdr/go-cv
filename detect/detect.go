@@ -69,14 +69,14 @@ func Points(im, tmpl *rimg64.Multi, localmax bool, minscore float64) []DetPos {
 	return PointsOp(im, tmpl, localmax, minscore, Dot)
 }
 
-type Op int
+type CorrOp int
 
 const (
-	Dot Op = iota
+	Dot CorrOp = iota
 	Cos
 )
 
-func PointsOp(im, tmpl *rimg64.Multi, localmax bool, minscore float64, op Op) []DetPos {
+func PointsOp(im, tmpl *rimg64.Multi, localmax bool, minscore float64, op CorrOp) []DetPos {
 	if im.Width < tmpl.Width || im.Height < tmpl.Height {
 		return nil
 	}
