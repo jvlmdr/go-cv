@@ -9,6 +9,8 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
+func sqr(x float64) float64 { return x * x }
+
 func randImage(width, height int) *rimg64.Image {
 	f := rimg64.New(width, height)
 	for i := 0; i < width; i++ {

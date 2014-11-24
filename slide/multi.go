@@ -9,11 +9,11 @@ import (
 	"github.com/jvlmdr/go-fftw/fftw"
 )
 
-func ConvMulti(f, g *rimg64.Multi) *rimg64.Image {
+func ConvMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	return convMultiAuto(f, g, false)
 }
 
-func CorrMulti(f, g *rimg64.Multi) *rimg64.Image {
+func CorrMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	return convMultiAuto(f, g, true)
 }
 
@@ -26,7 +26,7 @@ func errIfChannelsNotEq(f, g *rimg64.Multi) error {
 
 // Performs correlation of multi-channel images.
 // Returns sum over channels.
-func convMultiAuto(f, g *rimg64.Multi, corr bool) *rimg64.Image {
+func convMultiAuto(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
@@ -34,7 +34,7 @@ func convMultiAuto(f, g *rimg64.Multi, corr bool) *rimg64.Image {
 	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	// Need to compute one inner product per output element.
 	naiveMuls := size.X * size.Y * g.Width * g.Height
@@ -49,7 +49,7 @@ func convMultiAuto(f, g *rimg64.Multi, corr bool) *rimg64.Image {
 	return convMultiNaive(f, g, corr)
 }
 
-func convMultiNaive(f, g *rimg64.Multi, corr bool) *rimg64.Image {
+func convMultiNaive(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
 	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	for i := r.Min.X; i < r.Max.X; i++ {
@@ -69,10 +69,10 @@ func convMultiNaive(f, g *rimg64.Multi, corr bool) *rimg64.Image {
 			h.Set(i-r.Min.X, j-r.Min.Y, total)
 		}
 	}
-	return h
+	return h, nil
 }
 
-func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) *rimg64.Image {
+func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) (*rimg64.Image, error) {
 	x := fftw.NewArray2(work.X, work.Y)
 	y := fftw.NewArray2(work.X, work.Y)
 	fftX := fftw.NewPlan2(x, x, fftw.Forward, fftw.Estimate)
@@ -110,7 +110,7 @@ func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) *rimg64.Image
 			}
 		}
 	}
-	return h
+	return h, nil
 }
 
 // Assumes that f is no smaller than x.
@@ -137,47 +137,47 @@ func copyRealToChannel(f *rimg64.Multi, p int, x *fftw.Array2) {
 	}
 }
 
-func ConvMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
+func ConvMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
 	out := ValidSize(f.Size(), g.Size())
 	if out.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	return convMultiNaive(f, g, false)
 }
 
-func CorrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
+func CorrMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
 	out := ValidSize(f.Size(), g.Size())
 	if out.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	return convMultiNaive(f, g, true)
 }
 
-func ConvMultiFFT(f, g *rimg64.Multi) *rimg64.Image {
+func ConvMultiFFT(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
 	out := ValidSize(f.Size(), g.Size())
 	if out.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	work, _ := FFT2Size(f.Size())
 	return convMultiFFT(f, g, work, false)
 }
 
-func CorrMultiFFT(f, g *rimg64.Multi) *rimg64.Image {
+func CorrMultiFFT(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
 	out := ValidSize(f.Size(), g.Size())
 	if out.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	work, _ := FFT2Size(f.Size())
 	return convMultiFFT(f, g, work, true)

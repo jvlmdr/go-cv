@@ -2,15 +2,14 @@ package slide_test
 
 import (
 	"image"
-	"math"
 	"testing"
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-cv/slide"
 )
 
-func TestCorrStride(t *testing.T) {
-	const eps = 1e-12
+func TestCorrStrideNaive(t *testing.T) {
+	const eps = 1e-9
 	const X = 10
 
 	cases := []struct {
@@ -261,84 +260,99 @@ func TestCorrStride(t *testing.T) {
 	}
 
 	for _, q := range cases {
-		h := slide.CorrStride(q.F, q.G, q.K)
-		t.Logf("f %v, g %v, k %d", q.F.Size(), q.G.Size(), q.K)
-		checkEq(t, q.H, h, eps)
+		h, err := slide.CorrStrideNaive(q.F, q.G, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.F.Size(), q.G.Size(), q.K, err)
+			continue
+		}
+		if err := errIfNotEqImage(q.H, h, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.F.Size(), q.G.Size(), q.K, err)
+			continue
+		}
 	}
 }
 
-func TestCorrStride_rand(t *testing.T) {
-	const eps = 1e-12
+func TestCorrStrideNaive_vsDecimate(t *testing.T) {
+	const eps = 1e-9
 	cases := []struct {
-		F, G image.Point
-		K    int
+		ImSize   image.Point
+		TmplSize image.Point
+		K        int
 	}{
-		{F: image.Pt(8, 10), G: image.Pt(3, 2), K: 5},
-		{F: image.Pt(100, 1), G: image.Pt(1, 1), K: 5},
-		{F: image.Pt(1, 100), G: image.Pt(1, 1), K: 5},
-		{F: image.Pt(43, 64), G: image.Pt(4, 5), K: 3},
-		{F: image.Pt(43, 64), G: image.Pt(5, 4), K: 3},
-		{F: image.Pt(64, 43), G: image.Pt(4, 5), K: 3},
-		{F: image.Pt(64, 43), G: image.Pt(5, 4), K: 3},
-		{F: image.Pt(63, 127), G: image.Pt(3, 2), K: 32},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), K: 32},
-		{F: image.Pt(63, 127), G: image.Pt(3, 2), K: 31},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), K: 31},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), K: 10000},
+		{ImSize: image.Pt(8, 10), TmplSize: image.Pt(3, 2), K: 5},
+		{ImSize: image.Pt(100, 1), TmplSize: image.Pt(1, 1), K: 5},
+		{ImSize: image.Pt(1, 100), TmplSize: image.Pt(1, 1), K: 5},
+		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(4, 5), K: 3},
+		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(5, 4), K: 3},
+		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(4, 5), K: 3},
+		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(5, 4), K: 3},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 32},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 32},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 31},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 31},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 10000},
 	}
 
 	for _, q := range cases {
-		f := randImage(q.F.X, q.F.Y)
-		g := randImage(q.G.X, q.G.Y)
-		want := slide.Decimate(slide.Corr(f, g), q.K)
-		got := slide.CorrStride(f, g, q.K)
-		t.Logf("f %v, g %v, k %d", q.F, q.G, q.K)
-		checkEq(t, want, got, eps)
+		f := randImage(q.ImSize.X, q.ImSize.Y)
+		g := randImage(q.TmplSize.X, q.TmplSize.Y)
+		h, err := slide.CorrNaive(f, g)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		want := slide.Decimate(h, q.K)
+		got, err := slide.CorrStrideNaive(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		if err := errIfNotEqImage(want, got, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
 	}
 }
 
-func TestCorrMultiStride_rand(t *testing.T) {
-	const eps = 1e-12
+func TestCorrMultiStrideNaive_vsDecimate(t *testing.T) {
+	const eps = 1e-9
 	cases := []struct {
-		F, G image.Point
-		C    int
-		K    int
+		ImSize   image.Point
+		TmplSize image.Point
+		C        int
+		K        int
 	}{
-		{F: image.Pt(8, 10), G: image.Pt(3, 2), C: 5, K: 5},
-		{F: image.Pt(100, 1), G: image.Pt(1, 1), C: 5, K: 5},
-		{F: image.Pt(1, 100), G: image.Pt(1, 1), C: 5, K: 5},
-		{F: image.Pt(43, 64), G: image.Pt(4, 5), C: 5, K: 3},
-		{F: image.Pt(43, 64), G: image.Pt(5, 4), C: 5, K: 3},
-		{F: image.Pt(64, 43), G: image.Pt(4, 5), C: 5, K: 3},
-		{F: image.Pt(64, 43), G: image.Pt(5, 4), C: 5, K: 3},
-		{F: image.Pt(63, 127), G: image.Pt(3, 2), C: 5, K: 32},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), C: 5, K: 32},
-		{F: image.Pt(63, 127), G: image.Pt(3, 2), C: 5, K: 31},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), C: 5, K: 31},
-		{F: image.Pt(63, 127), G: image.Pt(2, 3), C: 5, K: 10000},
+		{ImSize: image.Pt(8, 10), TmplSize: image.Pt(3, 2), C: 5, K: 5},
+		{ImSize: image.Pt(100, 1), TmplSize: image.Pt(1, 1), C: 5, K: 5},
+		{ImSize: image.Pt(1, 100), TmplSize: image.Pt(1, 1), C: 5, K: 5},
+		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(4, 5), C: 5, K: 3},
+		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(5, 4), C: 5, K: 3},
+		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(4, 5), C: 5, K: 3},
+		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(5, 4), C: 5, K: 3},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), C: 5, K: 32},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), C: 5, K: 32},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), C: 5, K: 31},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), C: 5, K: 31},
+		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), C: 5, K: 10000},
 	}
 
 	for _, q := range cases {
-		f := randMulti(q.F.X, q.F.Y, q.C)
-		g := randMulti(q.G.X, q.G.Y, q.C)
-		want := slide.Decimate(slide.CorrMulti(f, g), q.K)
-		got := slide.CorrMultiStride(f, g, q.K)
-		t.Logf("f %v, g %v, k %d", q.F, q.G, q.K)
-		checkEq(t, want, got, eps)
-	}
-}
-
-func checkEq(t *testing.T, want, got *rimg64.Image, eps float64) {
-	if !want.Size().Eq(got.Size()) {
-		t.Errorf("size: want %v, got %v", want.Size(), got.Size())
-		return
-	}
-	for x := 0; x < want.Width; x++ {
-		for y := 0; y < want.Height; y++ {
-			a, b := want.At(x, y), got.At(x, y)
-			if math.Abs(a-b) > eps {
-				t.Errorf("value at %v: want %g, got %g", image.Pt(x, y), a, b)
-			}
+		f := randMulti(q.ImSize.X, q.ImSize.Y, q.C)
+		g := randMulti(q.TmplSize.X, q.TmplSize.Y, q.C)
+		h, err := slide.CorrMulti(f, g)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		want := slide.Decimate(h, q.K)
+		got, err := slide.CorrMultiStrideNaive(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		if err := errIfNotEqImage(want, got, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
 		}
 	}
 }

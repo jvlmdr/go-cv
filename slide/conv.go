@@ -14,10 +14,11 @@ import (
 // Beware: This is typically denoted g * f with the arguments in the opposite order.
 //
 // Automatically selects between naive and Fourier-domain convolution.
-func Conv(f, g *rimg64.Image) *rimg64.Image {
+func Conv(f, g *rimg64.Image) (*rimg64.Image, error) {
 	return convAuto(f, g, false)
 }
 
+// Flip mirrors an image in both dimensions.
 func Flip(f *rimg64.Image) *rimg64.Image {
 	g := rimg64.New(f.Width, f.Height)
 	for i := 0; i < f.Width; i++ {
@@ -34,16 +35,16 @@ func Flip(f *rimg64.Image) *rimg64.Image {
 // Beware: This is typically denoted g * f with the arguments in the opposite order.
 //
 // Automatically selects between naive and Fourier-domain convolution.
-func Corr(f, g *rimg64.Image) *rimg64.Image {
+func Corr(f, g *rimg64.Image) (*rimg64.Image, error) {
 	return convAuto(f, g, true)
 }
 
-func convAuto(f, g *rimg64.Image, corr bool) *rimg64.Image {
+func convAuto(f, g *rimg64.Image, corr bool) (*rimg64.Image, error) {
 	// Size of output.
 	size := ValidSize(f.Size(), g.Size())
 	// Return empty image if that's the result.
 	if size.Eq(image.ZP) {
-		return nil
+		return nil, nil
 	}
 	// Need to compute one inner product per output element.
 	naiveMuls := size.X * size.Y * g.Width * g.Height
@@ -58,7 +59,7 @@ func convAuto(f, g *rimg64.Image, corr bool) *rimg64.Image {
 	return convNaive(f, g, corr)
 }
 
-func convNaive(f, g *rimg64.Image, corr bool) *rimg64.Image {
+func convNaive(f, g *rimg64.Image, corr bool) (*rimg64.Image, error) {
 	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	for i := r.Min.X; i < r.Max.X; i++ {
@@ -76,12 +77,12 @@ func convNaive(f, g *rimg64.Image, corr bool) *rimg64.Image {
 			h.Set(i-r.Min.X, j-r.Min.Y, total)
 		}
 	}
-	return h
+	return h, nil
 }
 
 // The work parameter specifies the dimension of the FFT.
 // The out parameter gives the size of the result.
-func convFFT(f, g *rimg64.Image, work image.Point, corr bool) *rimg64.Image {
+func convFFT(f, g *rimg64.Image, work image.Point, corr bool) (*rimg64.Image, error) {
 	x := fftw.NewArray2(work.X, work.Y)
 	y := fftw.NewArray2(work.X, work.Y)
 	// Copy into FFT arrays.
@@ -113,7 +114,41 @@ func convFFT(f, g *rimg64.Image, work image.Point, corr bool) *rimg64.Image {
 			h.Set(u-r.Min.X, v-r.Min.Y, real(x.At(u, v))/n)
 		}
 	}
-	return h
+	return h, nil
+}
+
+func ConvNaive(f, g *rimg64.Image) (*rimg64.Image, error) {
+	out := ValidSize(f.Size(), g.Size())
+	if out.Eq(image.ZP) {
+		return nil, nil
+	}
+	return convNaive(f, g, false)
+}
+
+func CorrNaive(f, g *rimg64.Image) (*rimg64.Image, error) {
+	out := ValidSize(f.Size(), g.Size())
+	if out.Eq(image.ZP) {
+		return nil, nil
+	}
+	return convNaive(f, g, true)
+}
+
+func ConvFFT(f, g *rimg64.Image) (*rimg64.Image, error) {
+	out := ValidSize(f.Size(), g.Size())
+	if out.Eq(image.ZP) {
+		return nil, nil
+	}
+	work, _ := FFT2Size(f.Size())
+	return convFFT(f, g, work, false)
+}
+
+func CorrFFT(f, g *rimg64.Image) (*rimg64.Image, error) {
+	out := ValidSize(f.Size(), g.Size())
+	if out.Eq(image.ZP) {
+		return nil, nil
+	}
+	work, _ := FFT2Size(f.Size())
+	return convFFT(f, g, work, true)
 }
 
 func copyImageTo(x *fftw.Array2, f *rimg64.Image) {
@@ -127,38 +162,4 @@ func copyImageTo(x *fftw.Array2, f *rimg64.Image) {
 			}
 		}
 	}
-}
-
-func ConvNaive(f, g *rimg64.Image) *rimg64.Image {
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil
-	}
-	return convNaive(f, g, false)
-}
-
-func CorrNaive(f, g *rimg64.Image) *rimg64.Image {
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil
-	}
-	return convNaive(f, g, true)
-}
-
-func ConvFFT(f, g *rimg64.Image) *rimg64.Image {
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil
-	}
-	work, _ := FFT2Size(f.Size())
-	return convFFT(f, g, work, false)
-}
-
-func CorrFFT(f, g *rimg64.Image) *rimg64.Image {
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil
-	}
-	work, _ := FFT2Size(f.Size())
-	return convFFT(f, g, work, true)
 }

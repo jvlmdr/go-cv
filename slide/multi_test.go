@@ -2,7 +2,6 @@ package slide_test
 
 import (
 	"image"
-	"math"
 	"testing"
 
 	"github.com/jvlmdr/go-cv/slide"
@@ -22,48 +21,44 @@ func TestCorrMulti_FFTVsNaive(t *testing.T) {
 	f := randMulti(w, h, c)
 	g := randMulti(m, n, c)
 
-	naive := slide.CorrMultiNaive(f, g)
-	fourier := slide.CorrMultiFFT(f, g)
-
-	if !naive.Size().Eq(fourier.Size()) {
-		t.Fatalf("size mismatch (naive %v, fourier %v)", naive.Size(), fourier.Size())
+	naive, err := slide.CorrMultiNaive(f, g)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	for x := 0; x < naive.Width; x++ {
-		for y := 0; y < naive.Height; y++ {
-			xy := image.Pt(x, y)
-			if math.Abs(naive.At(x, y)-fourier.At(x, y)) > eps {
-				t.Errorf("value mismatch at %v (naive %g, fourier %g)", xy, naive.At(x, y), fourier.At(x, y))
-			}
-		}
+	fft, err := slide.CorrMultiFFT(f, g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := errIfNotEqImage(naive, fft, eps); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func BenchmarkCorrMultiFFT_640x480_3x3_4(b *testing.B) {
+func BenchmarkCorrMultiFFT_Im_640x480_Tmpl_3x3_In_4(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 4, true)
 }
 
-func BenchmarkCorrMultiFFT_640x480_3x3_128(b *testing.B) {
+func BenchmarkCorrMultiFFT_Im_640x480_Tmpl_3x3_In_128(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 128, true)
 }
 
-func BenchmarkCorrMultiFFT_640x480_16x16_4(b *testing.B) {
+func BenchmarkCorrMultiFFT_Im_640x480_Tmpl_16x16_In_4(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 4, true)
 }
 
-func BenchmarkCorrMultiFFT_640x480_16x16_128(b *testing.B) {
+func BenchmarkCorrMultiFFT_Im_640x480_Tmpl_16x16_In_128(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 128, true)
 }
 
-func BenchmarkCorrMultiNaive_640x480_3x3_4(b *testing.B) {
+func BenchmarkCorrMultiNaive_Im_640x480_Tmpl_3x3_In_4(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 4, false)
 }
 
-func BenchmarkCorrMultiNaive_640x480_3x3_128(b *testing.B) {
+func BenchmarkCorrMultiNaive_Im_640x480_Tmpl_3x3_In_128(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(3, 3), 128, false)
 }
 
-func BenchmarkCorrMultiNaive_640x480_16x16_4(b *testing.B) {
+func BenchmarkCorrMultiNaive_Im_640x480_Tmpl_16x16_In_4(b *testing.B) {
 	benchmarkCorrMulti(b, image.Pt(640, 480), image.Pt(16, 16), 4, false)
 }
 

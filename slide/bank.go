@@ -10,7 +10,7 @@ import (
 )
 
 // MultiBank describes a collection of multi-channel filters.
-// All filters must have the same dimension.
+// All filters must have the same spatial dimension.
 type MultiBank struct {
 	Width    int
 	Height   int
@@ -18,40 +18,14 @@ type MultiBank struct {
 	Filters  []*rimg64.Multi
 }
 
+// Size gives the spatial dimension of all filters in the bank.
 func (bank *MultiBank) Size() image.Point {
 	return image.Pt(bank.Width, bank.Height)
 }
 
-func fftOfChannel(fhat *fftw.Array2, f *rimg64.Multi, p int) {
-	plan := fftw.NewPlan2(fhat, fhat, fftw.Forward, fftw.Estimate)
-	defer plan.Destroy()
-	copyChannelTo(fhat, f, p)
-	plan.Execute()
-}
-
-// ci <- ci + k ai* bi
-func mulAddTo(c *fftw.Array2, k complex128, a, b *fftw.Array2) {
-	m, n := a.Dims()
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			ax := cmplx.Conj(a.At(i, j))
-			bx := b.At(i, j)
-			cx := c.At(i, j)
-			c.Set(i, j, cx+k*ax*bx)
-		}
-	}
-}
-
-func zero(x *fftw.Array2) {
-	m, n := x.Dims()
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			x.Set(i, j, 0)
-		}
-	}
-}
-
-// h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
+// CorrMultiBankNaive computes the correlation of
+// a multi-channel image with a bank of multi-channel filters.
+// 	h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
 func CorrMultiBankNaive(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	out := ValidSize(f.Size(), g.Size())
 	if out.X <= 0 || out.Y <= 0 {
@@ -75,7 +49,9 @@ func CorrMultiBankNaive(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	return h, nil
 }
 
-// h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
+// CorrMultiBankFFT computes the correlation of
+// a multi-channel image with a bank of multi-channel filters.
+// 	h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
 func CorrMultiBankFFT(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	out := ValidSize(f.Size(), g.Size())
 	if out.X <= 0 || out.Y <= 0 {
@@ -109,7 +85,7 @@ func CorrMultiBankFFT(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 			fwd.Execute()
 			// h_p[x] = (F_p corr G_qp)[x]
 			// H_p[x] = F_p[x]* G_qp[x]
-			mulAddTo(sum, alpha, curr, fhat[q])
+			addScaleMul(sum, alpha, curr, fhat[q])
 		}
 		bwd.Execute()
 		copyRealToChannel(h, p, sum)
@@ -117,6 +93,9 @@ func CorrMultiBankFFT(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	return h, nil
 }
 
+// CorrMultiBankBLAS computes the correlation of
+// a multi-channel image with a bank of multi-channel filters.
+// 	h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
 func CorrMultiBankBLAS(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	out := ValidSize(f.Size(), g.Size())
 	if out.X <= 0 || out.Y <= 0 {
@@ -124,8 +103,13 @@ func CorrMultiBankBLAS(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 	}
 	// Express as dense matrix multiplication.
 	//   h_p[u, v] = sum_q (f_q corr g_pq)[u, v]
-	//   h = A(f) X(g)
-	// where A is (M-m+1)(N-n+1)k by mnk.
+	//   Y(h) = A(f) X(g)
+	// If the number of input and output channels are Q and P, then
+	//   A is (M-m+1)(N-n+1) x mnQ and
+	//   X is mnQ x P, so that
+	//   Y is (M-m+1)(N-n+1) x P.
+	// Note that the time to build the system is therefore
+	// affected more by the number of input channels Q than outputs P.
 
 	h := rimg64.NewMulti(out.X, out.Y, len(g.Filters))
 	M, N, K := h.Width, h.Height, h.Channels
@@ -175,4 +159,33 @@ func CorrMultiBankBLAS(f *rimg64.Multi, g *MultiBank) (*rimg64.Multi, error) {
 		}
 	}
 	return h, nil
+}
+
+func fftOfChannel(fhat *fftw.Array2, f *rimg64.Multi, p int) {
+	plan := fftw.NewPlan2(fhat, fhat, fftw.Forward, fftw.Estimate)
+	defer plan.Destroy()
+	copyChannelTo(fhat, f, p)
+	plan.Execute()
+}
+
+// ci <- ci + k ai* bi
+func addScaleMul(c *fftw.Array2, k complex128, a, b *fftw.Array2) {
+	m, n := a.Dims()
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			ax := cmplx.Conj(a.At(i, j))
+			bx := b.At(i, j)
+			cx := c.At(i, j)
+			c.Set(i, j, cx+k*ax*bx)
+		}
+	}
+}
+
+func zero(x *fftw.Array2) {
+	m, n := x.Dims()
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			x.Set(i, j, 0)
+		}
+	}
 }

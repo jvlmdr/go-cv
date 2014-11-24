@@ -1,7 +1,6 @@
 package slide_test
 
 import (
-	"image"
 	"math"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
-func TestCorr(t *testing.T) {
+func TestCorrNaive(t *testing.T) {
 	const eps = 1e-9
 	f := rimg64.FromRows([][]float64{
 		{1, 2, 3, 4, 5},
@@ -38,7 +37,10 @@ func TestCorr(t *testing.T) {
 		{2, 1, 3*4 + 1*1 + 5*3 + 2*3 + 4*2 + 1*1},
 	}
 
-	h := slide.Corr(f, g)
+	h, err := slide.CorrNaive(f, g)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if h.Width != 3 || h.Height != 2 {
 		t.Fatalf("wrong size: want %dx%d, got %dx%d", 3, 2, h.Width, h.Height)
 	}
@@ -62,75 +64,52 @@ func TestConv_vsFlipCorr(t *testing.T) {
 	g := randImage(m, n)
 	// Flip g to obtain h.
 	h := slide.Flip(g)
-	gConvF := slide.Conv(f, g)
-	gCorrF := slide.Corr(f, g)
-	hConvF := slide.Conv(f, h)
-	hCorrF := slide.Corr(f, h)
-	checkImageEq(t, gCorrF, hConvF, eps)
-	checkImageEq(t, hCorrF, gConvF, eps)
-}
-
-func checkImageEq(t *testing.T, want, got *rimg64.Image, eps float64) {
-	if !want.Size().Eq(got.Size()) {
-		t.Errorf("different size: want %v, got %v", want.Size(), got.Size())
-		return
+	gConvF, err := slide.Conv(f, g)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for i := 0; i < want.Width; i++ {
-		for j := 0; j < want.Height; j++ {
-			a, b := want.At(i, j), got.At(i, j)
-			if math.Abs(a-b) > eps {
-				t.Errorf("different at %d, %d: want %g, got %g", i, j, a, b)
-			}
-		}
+	gCorrF, err := slide.Corr(f, g)
+	if err != nil {
+		t.Fatal(err)
 	}
-}
-
-func BenchmarkCorrFFT(b *testing.B) {
-	const M, N = 800, 600
-	const m, n = 20, 40
-	for i := 0; i < b.N; i++ {
-		x := randImage(M, N)
-		y := randImage(m, n)
-		slide.CorrFFT(x, y)
+	hConvF, err := slide.Conv(f, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hCorrF, err := slide.Corr(f, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := errIfNotEqImage(gCorrF, hConvF, eps); err != nil {
+		t.Fatal(err)
+	}
+	if err := errIfNotEqImage(hCorrF, gConvF, eps); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func BenchmarkCorrNaive(b *testing.B) {
-	const M, N = 800, 600
-	const m, n = 20, 40
-	for i := 0; i < b.N; i++ {
-		x := randImage(M, N)
-		y := randImage(m, n)
-		slide.CorrNaive(x, y)
-	}
-}
-
-// Compare naive and Fourier implementations.
-func TestCorr_fftVsNaive(t *testing.T) {
+func TestCorrFFT_vsNaive(t *testing.T) {
 	const (
 		m   = 40
 		n   = 30
 		w   = 100
 		h   = 80
-		eps = 1e-12
+		eps = 1e-9
 	)
-
 	f := randImage(w, h)
 	g := randImage(m, n)
-
-	naive := slide.CorrNaive(f, g)
-	fourier := slide.CorrFFT(f, g)
-
-	if !naive.Size().Eq(fourier.Size()) {
-		t.Fatalf("size mismatch (naive %v, fourier %v)", naive.Size(), fourier.Size())
+	naive, err := slide.CorrNaive(f, g)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	for x := 0; x < naive.Width; x++ {
-		for y := 0; y < naive.Height; y++ {
-			xy := image.Pt(x, y)
-			if math.Abs(naive.At(x, y)-fourier.At(x, y)) > eps {
-				t.Errorf("value mismatch at %v (naive %g, fourier %g)", xy, naive.At(x, y), fourier.At(x, y))
-			}
-		}
+	fft, err := slide.CorrFFT(f, g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !naive.Size().Eq(fft.Size()) {
+		t.Fatalf("size mismatch (naive %v, fft %v)", naive.Size(), fft.Size())
+	}
+	if err := errIfNotEqImage(naive, fft, eps); err != nil {
+		t.Fatal(err)
 	}
 }
