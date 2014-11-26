@@ -8,16 +8,6 @@ import (
 	"github.com/jvlmdr/go-fftw/fftw"
 )
 
-// Conv computes convolution of template g with image f.
-// Returns the inner product at all positions such that g lies entirely within f.
-//	If h = corr(f, g), then h(t) = sum_{tau} f(t-tau) g(tau).
-// Beware: This is typically denoted g * f with the arguments in the opposite order.
-//
-// Automatically selects between naive and Fourier-domain convolution.
-func Conv(f, g *rimg64.Image) (*rimg64.Image, error) {
-	return convAuto(f, g, false)
-}
-
 // Flip mirrors an image in both dimensions.
 func Flip(f *rimg64.Image) *rimg64.Image {
 	g := rimg64.New(f.Width, f.Height)
@@ -27,6 +17,16 @@ func Flip(f *rimg64.Image) *rimg64.Image {
 		}
 	}
 	return g
+}
+
+// Conv computes convolution of template g with image f.
+// Returns the inner product at all positions such that g lies entirely within f.
+//	If h = corr(f, g), then h(t) = sum_{tau} f(t-tau) g(tau).
+// Beware: This is typically denoted g * f with the arguments in the opposite order.
+//
+// Automatically selects between naive and Fourier-domain convolution.
+func Conv(f, g *rimg64.Image) (*rimg64.Image, error) {
+	return convAuto(f, g, false)
 }
 
 // Corr computes correlation of template g with image f.
@@ -83,26 +83,26 @@ func convNaive(f, g *rimg64.Image, corr bool) (*rimg64.Image, error) {
 // The work parameter specifies the dimension of the FFT.
 // The out parameter gives the size of the result.
 func convFFT(f, g *rimg64.Image, work image.Point, corr bool) (*rimg64.Image, error) {
-	x := fftw.NewArray2(work.X, work.Y)
-	y := fftw.NewArray2(work.X, work.Y)
+	fhat := fftw.NewArray2(work.X, work.Y)
+	ghat := fftw.NewArray2(work.X, work.Y)
 	// Copy into FFT arrays.
-	copyImageTo(x, f)
-	copyImageTo(y, g)
+	copyImageTo(fhat, f)
+	copyImageTo(ghat, g)
 	// Take forward transforms.
-	x = fftw.FFT2(x)
-	y = fftw.FFT2(y)
+	fftw.FFT2To(fhat, fhat)
+	fftw.FFT2To(ghat, ghat)
 	// Multiply in Fourier domain.
 	for u := 0; u < work.X; u++ {
 		for v := 0; v < work.Y; v++ {
 			if corr {
-				x.Set(u, v, x.At(u, v)*cmplx.Conj(y.At(u, v)))
+				fhat.Set(u, v, fhat.At(u, v)*cmplx.Conj(ghat.At(u, v)))
 			} else {
-				x.Set(u, v, x.At(u, v)*y.At(u, v))
+				fhat.Set(u, v, fhat.At(u, v)*ghat.At(u, v))
 			}
 		}
 	}
 	// Take inverse transform.
-	x = fftw.IFFT2(x)
+	fftw.IFFT2To(fhat, fhat)
 
 	r := validRect(f.Size(), g.Size(), corr)
 	// Extract desired region.
@@ -111,7 +111,7 @@ func convFFT(f, g *rimg64.Image, work image.Point, corr bool) (*rimg64.Image, er
 	n := float64(work.X * work.Y)
 	for u := r.Min.X; u < r.Max.X; u++ {
 		for v := r.Min.Y; v < r.Max.Y; v++ {
-			h.Set(u-r.Min.X, v-r.Min.Y, real(x.At(u, v))/n)
+			h.Set(u-r.Min.X, v-r.Min.Y, real(fhat.At(u, v))/n)
 		}
 	}
 	return h, nil
@@ -149,17 +149,4 @@ func CorrFFT(f, g *rimg64.Image) (*rimg64.Image, error) {
 	}
 	work, _ := FFT2Size(f.Size())
 	return convFFT(f, g, work, true)
-}
-
-func copyImageTo(x *fftw.Array2, f *rimg64.Image) {
-	w, h := x.Dims()
-	for u := 0; u < w; u++ {
-		for v := 0; v < h; v++ {
-			if u < f.Width && v < f.Height {
-				x.Set(u, v, complex(f.At(u, v), 0))
-			} else {
-				x.Set(u, v, 0)
-			}
-		}
-	}
 }

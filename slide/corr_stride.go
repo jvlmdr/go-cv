@@ -78,34 +78,7 @@ func CorrStrideFFT(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
 	// Take the inverse transform.
 	h := rimg64.New(out.X, out.Y)
 	scale(alpha, hhat)
-	realIFFTTo(h, hhat)
+	fftw.IFFT2To(hhat, hhat)
+	copyRealTo(h, hhat)
 	return h, nil
-}
-
-// dst[i, j] = src[i*stride + offset.X, j*stride + offset.Y],
-// or zero if this is outside the boundary.
-func copyStrideTo(dst *fftw.Array2, src *rimg64.Image, stride int, offset image.Point) {
-	m, n := dst.Dims()
-	bnds := image.Rect(0, 0, src.Width, src.Height)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			p := image.Pt(i, j).Mul(stride).Add(offset)
-			var val complex128
-			if p.In(bnds) {
-				val = complex(src.At(p.X, p.Y), 0)
-			}
-			dst.Set(i, j, val)
-		}
-	}
-}
-
-func realIFFTTo(dst *rimg64.Image, src *fftw.Array2) {
-	plan := fftw.NewPlan2(src, src, fftw.Backward, fftw.Estimate)
-	defer plan.Destroy()
-	plan.Execute()
-	for i := 0; i < dst.Width; i++ {
-		for j := 0; j < dst.Height; j++ {
-			dst.Set(i, j, real(src.At(i, j)))
-		}
-	}
 }

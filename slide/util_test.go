@@ -33,6 +33,18 @@ func randMulti(width, height, channels int) *rimg64.Multi {
 	return f
 }
 
+func randBank(m, n, q int) *slide.Bank {
+	g := &slide.Bank{
+		Width:   m,
+		Height:  n,
+		Filters: make([]*rimg64.Image, q),
+	}
+	for i := range g.Filters {
+		g.Filters[i] = randImage(m, n)
+	}
+	return g
+}
+
 func randMultiBank(m, n, p, q int) *slide.MultiBank {
 	g := &slide.MultiBank{
 		Width:    m,

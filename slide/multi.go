@@ -1,7 +1,6 @@
 package slide
 
 import (
-	"fmt"
 	"image"
 	"math/cmplx"
 
@@ -15,13 +14,6 @@ func ConvMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
 
 func CorrMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	return convMultiAuto(f, g, true)
-}
-
-func errIfChannelsNotEq(f, g *rimg64.Multi) error {
-	if f.Channels != g.Channels {
-		return fmt.Errorf("different number of channels: %d, %d", f.Channels, g.Channels)
-	}
-	return nil
 }
 
 // Performs correlation of multi-channel images.
@@ -73,68 +65,44 @@ func convMultiNaive(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
 }
 
 func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) (*rimg64.Image, error) {
-	x := fftw.NewArray2(work.X, work.Y)
-	y := fftw.NewArray2(work.X, work.Y)
-	fftX := fftw.NewPlan2(x, x, fftw.Forward, fftw.Estimate)
-	defer fftX.Destroy()
-	fftY := fftw.NewPlan2(y, y, fftw.Forward, fftw.Estimate)
-	defer fftY.Destroy()
-	ifftX := fftw.NewPlan2(x, x, fftw.Backward, fftw.Estimate)
-	defer ifftX.Destroy()
+	fhat := fftw.NewArray2(work.X, work.Y)
+	ghat := fftw.NewArray2(work.X, work.Y)
+	ffwd := fftw.NewPlan2(fhat, fhat, fftw.Forward, fftw.Estimate)
+	defer ffwd.Destroy()
+	gfwd := fftw.NewPlan2(ghat, ghat, fftw.Forward, fftw.Estimate)
+	defer gfwd.Destroy()
+	finv := fftw.NewPlan2(fhat, fhat, fftw.Backward, fftw.Estimate)
+	defer finv.Destroy()
 
 	r := validRect(f.Size(), g.Size(), corr)
 	h := rimg64.New(r.Dx(), r.Dy())
 	n := float64(work.X * work.Y)
 
 	for p := 0; p < f.Channels; p++ {
-		copyChannelTo(x, f, p)
-		copyChannelTo(y, g, p)
-		fftX.Execute()
-		fftY.Execute()
+		copyChannelTo(fhat, f, p)
+		copyChannelTo(ghat, g, p)
+		ffwd.Execute()
+		gfwd.Execute()
 		for u := 0; u < work.X; u++ {
 			for v := 0; v < work.Y; v++ {
 				if corr {
-					x.Set(u, v, x.At(u, v)*cmplx.Conj(y.At(u, v)))
+					fhat.Set(u, v, fhat.At(u, v)*cmplx.Conj(ghat.At(u, v)))
 				} else {
-					x.Set(u, v, x.At(u, v)*y.At(u, v))
+					fhat.Set(u, v, fhat.At(u, v)*ghat.At(u, v))
 				}
 			}
 		}
-		ifftX.Execute()
+		finv.Execute()
 		// Sum response over multiple channels.
 		// Scale such that convolution theorem holds.
 		for u := r.Min.X; u < r.Max.X; u++ {
 			for v := r.Min.Y; v < r.Max.Y; v++ {
 				i, j := u-r.Min.X, v-r.Min.Y
-				h.Set(i, j, h.At(i, j)+real(x.At(u, v))/n)
+				h.Set(i, j, h.At(i, j)+real(fhat.At(u, v))/n)
 			}
 		}
 	}
 	return h, nil
-}
-
-// Assumes that f is no smaller than x.
-// Pads with zeros.
-func copyChannelTo(x *fftw.Array2, f *rimg64.Multi, p int) {
-	w, h := x.Dims()
-	for u := 0; u < w; u++ {
-		for v := 0; v < h; v++ {
-			if u < f.Width && v < f.Height {
-				x.Set(u, v, complex(f.At(u, v, p), 0))
-			} else {
-				x.Set(u, v, 0)
-			}
-		}
-	}
-}
-
-// Assumes that f is no smaller than x.
-func copyRealToChannel(f *rimg64.Multi, p int, x *fftw.Array2) {
-	for u := 0; u < f.Width; u++ {
-		for v := 0; v < f.Height; v++ {
-			f.Set(u, v, p, real(x.At(u, v)))
-		}
-	}
 }
 
 func ConvMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {

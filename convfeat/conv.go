@@ -2,6 +2,7 @@ package convfeat
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/jvlmdr/go-cv/featset"
 	"github.com/jvlmdr/go-cv/rimg64"
@@ -18,23 +19,23 @@ func init() {
 // ConvMulti represents multi-channel convolution.
 type ConvMulti struct {
 	Stride  int
-	Filters *FilterBankMulti
+	Filters *slide.MultiBank
 }
 
 func (phi *ConvMulti) Rate() int { return phi.Stride }
 
 func (phi *ConvMulti) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
-	if x.Channels != phi.Filters.NumIn {
+	if x.Channels != phi.Filters.Channels {
 		err := fmt.Errorf(
 			"channels: image has %d, filter bank has %d",
-			x.Channels, phi.Filters.NumIn,
+			x.Channels, phi.Filters.Channels,
 		)
 		return nil, err
 	}
 	if phi.Stride <= 1 {
-		return phi.Filters.Corr(x), nil
+		return slide.CorrMultiBankBLAS(x, phi.Filters)
 	}
-	return phi.Filters.CorrStride(x, phi.Stride), nil
+	return slide.CorrMultiBankStrideBLAS(x, phi.Filters, phi.Stride)
 }
 
 func (phi *ConvMulti) Marshaler() *featset.RealMarshaler {
@@ -45,19 +46,23 @@ func (phi *ConvMulti) Transform() featset.Real { return phi }
 
 // ConvEach applies the same single-channel filters to every channel.
 type ConvEach struct {
-	Filters *FilterBank
+	Filters *slide.Bank
 }
 
 func (phi *ConvEach) Rate() int { return 1 }
 
 func (phi *ConvEach) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
-	channels := x.Channels * len(phi.Filters.List)
-	size := slide.ValidSize(x.Size(), phi.Filters.Field)
+	channels := x.Channels * len(phi.Filters.Filters)
+	field := image.Pt(phi.Filters.Width, phi.Filters.Height)
+	size := slide.ValidSize(x.Size(), field)
 	y := rimg64.NewMulti(size.X, size.Y, channels)
 	var n int
 	for i := 0; i < x.Channels; i++ {
 		// Convolve each channel of the input with the bank.
-		yi := phi.Filters.Corr(x.Channel(i))
+		yi, err := slide.CorrBankBLAS(x.Channel(i), phi.Filters)
+		if err != nil {
+			return nil, err
+		}
 		for j := 0; j < yi.Channels; j++ {
 			// Copy the channels into the output.
 			y.SetChannel(n, yi.Channel(j))

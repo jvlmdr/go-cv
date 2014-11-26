@@ -56,7 +56,7 @@ func TestCorrNaive(t *testing.T) {
 
 func TestConv_vsFlipCorr(t *testing.T) {
 	const (
-		eps  = 1e-9
+		eps  = 1e-6
 		M, N = 601, 599
 		m, n = 32, 64
 	)

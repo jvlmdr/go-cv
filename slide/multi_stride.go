@@ -2,7 +2,6 @@ package slide
 
 import (
 	"image"
-	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
@@ -88,53 +87,7 @@ func CorrMultiStrideFFT(f, g *rimg64.Multi, stride int) (*rimg64.Image, error) {
 	// Take the inverse transform.
 	h := rimg64.New(out.X, out.Y)
 	scale(alpha, hhat)
-	realIFFTTo(h, hhat)
+	fftw.IFFT2To(hhat, hhat)
+	copyRealTo(h, hhat)
 	return h, nil
-}
-
-// dst[i, j] = src[i*stride + offset.X, j*stride + offset.Y],
-// or zero if this is outside the boundary.
-func copyChannelStrideTo(dst *fftw.Array2, src *rimg64.Multi, channel, stride int, offset image.Point) {
-	m, n := dst.Dims()
-	bnds := image.Rect(0, 0, src.Width, src.Height)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			p := image.Pt(i, j).Mul(stride).Add(offset)
-			var val complex128
-			if p.In(bnds) {
-				val = complex(src.At(p.X, p.Y, channel), 0)
-			}
-			dst.Set(i, j, val)
-		}
-	}
-}
-
-func realIFFTToChannel(dst *rimg64.Multi, channel int, src *fftw.Array2) {
-	plan := fftw.NewPlan2(src, src, fftw.Backward, fftw.Estimate)
-	defer plan.Destroy()
-	plan.Execute()
-	copyRealToChannel(dst, channel, src)
-}
-
-// ai <- k ai
-func scale(k complex128, c *fftw.Array2) {
-	m, n := c.Dims()
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			c.Set(i, j, k*c.At(i, j))
-		}
-	}
-}
-
-// ci <- ci + ai* bi
-func addMul(c *fftw.Array2, a, b *fftw.Array2) {
-	m, n := a.Dims()
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			ax := cmplx.Conj(a.At(i, j))
-			bx := b.At(i, j)
-			cx := c.At(i, j)
-			c.Set(i, j, cx+ax*bx)
-		}
-	}
 }
