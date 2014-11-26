@@ -57,79 +57,73 @@ func TestCorrMultiBankBLAS_vsNaive(t *testing.T) {
 	}
 }
 
-func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_4_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_4_Out_32(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, true, false)
-}
-
-func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_32_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_16x16_In_4_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_4_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_4_Out_32(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, false, true)
-}
-
-func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_32_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_32_Out_32(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 32, false, true)
-}
-
-func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_16x16_In_4_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, false, true)
-}
-
 func BenchmarkCorrMultiBankNaive_Im_640x480_Tmpl_3x3_In_4_Out_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, false, false)
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankNaive_Im_640x480_Tmpl_3x3_In_4_Out_32(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skip: 32 output channels")
 	}
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, false, false)
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankNaive_Im_640x480_Tmpl_3x3_In_32_Out_4(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skip: 32 input channels")
 	}
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, false, false)
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankNaive_Im_640x480_Tmpl_16x16_In_4_Out_4(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skip: 16x16 filter")
 	}
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, false, false)
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, slide.Naive)
 }
 
-func benchmarkCorrMultiBank(b *testing.B, im, tmpl image.Point, in, out int, fft, blas bool) {
+func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_4_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_4_Out_32(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_3x3_In_32_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankFFT_Im_640x480_Tmpl_16x16_In_4_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_4_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_4_Out_32(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_32_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_3x3_In_32_Out_32(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, 32, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankBLAS_Im_640x480_Tmpl_16x16_In_4_Out_4(b *testing.B) {
+	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, slide.BLAS)
+}
+
+func benchmarkCorrMultiBank(b *testing.B, im, tmpl image.Point, in, out int, algo slide.Algo) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		f := randMulti(im.X, im.Y, in)
 		g := randMultiBank(tmpl.X, tmpl.Y, in, out)
 		b.StartTimer()
-		if fft {
-			slide.CorrMultiBankFFT(f, g)
-		} else if blas {
-			slide.CorrMultiBankBLAS(f, g)
-		} else {
-			slide.CorrMultiBankNaive(f, g)
-		}
+		slide.CorrMultiBankAlgo(f, g, algo)
 	}
 }

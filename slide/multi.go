@@ -2,23 +2,23 @@ package slide
 
 import (
 	"image"
-	"math/cmplx"
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
+	"github.com/jvlmdr/lin-go/blas"
 )
 
-func ConvMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
-	return convMultiAuto(f, g, false)
-}
-
+// CorrMulti computes the correlation of
+// a multi-channel image with a multi-channel filter.
 func CorrMulti(f, g *rimg64.Multi) (*rimg64.Image, error) {
-	return convMultiAuto(f, g, true)
+	return CorrMultiAlgo(f, g, DefaultAlgo)
 }
 
-// Performs correlation of multi-channel images.
-// Returns sum over channels.
-func convMultiAuto(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
+// CorrMultiAuto computes the correlation of
+// a multi-channel image with a multi-channel filter.
+// 	h[u, v] = sum_p (f_p corr g_p)[u, v]
+// Automatically selects between naive and Fourier-domain convolution.
+func CorrMultiAuto(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
 	}
@@ -31,91 +31,19 @@ func convMultiAuto(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
 	// Need to compute one inner product per output element.
 	naiveMuls := size.X * size.Y * g.Width * g.Height
 	// Optimal FFT size and number of multiplications.
-	fftSize, fftMuls := FFT2Size(f.Size())
+	_, fftMuls := FFT2Size(f.Size())
 	// Need to perform two forward and one inverse transform.
 	fftMuls *= 3
 	// Switch implementation based on image size.
 	if fftMuls < naiveMuls {
-		return convMultiFFT(f, g, fftSize, corr)
+		return CorrMultiFFT(f, g)
 	}
-	return convMultiNaive(f, g, corr)
+	return CorrMultiNaive(f, g)
 }
 
-func convMultiNaive(f, g *rimg64.Multi, corr bool) (*rimg64.Image, error) {
-	r := validRect(f.Size(), g.Size(), corr)
-	h := rimg64.New(r.Dx(), r.Dy())
-	for i := r.Min.X; i < r.Max.X; i++ {
-		for j := r.Min.Y; j < r.Max.Y; j++ {
-			var total float64
-			for p := 0; p < f.Channels; p++ {
-				for u := 0; u < g.Width; u++ {
-					for v := 0; v < g.Height; v++ {
-						if corr {
-							total += f.At(i+u, j+v, p) * g.At(u, v, p)
-						} else {
-							total += f.At(i-u, j-v, p) * g.At(u, v, p)
-						}
-					}
-				}
-			}
-			h.Set(i-r.Min.X, j-r.Min.Y, total)
-		}
-	}
-	return h, nil
-}
-
-func convMultiFFT(f, g *rimg64.Multi, work image.Point, corr bool) (*rimg64.Image, error) {
-	fhat := fftw.NewArray2(work.X, work.Y)
-	ghat := fftw.NewArray2(work.X, work.Y)
-	ffwd := fftw.NewPlan2(fhat, fhat, fftw.Forward, fftw.Estimate)
-	defer ffwd.Destroy()
-	gfwd := fftw.NewPlan2(ghat, ghat, fftw.Forward, fftw.Estimate)
-	defer gfwd.Destroy()
-	finv := fftw.NewPlan2(fhat, fhat, fftw.Backward, fftw.Estimate)
-	defer finv.Destroy()
-
-	r := validRect(f.Size(), g.Size(), corr)
-	h := rimg64.New(r.Dx(), r.Dy())
-	n := float64(work.X * work.Y)
-
-	for p := 0; p < f.Channels; p++ {
-		copyChannelTo(fhat, f, p)
-		copyChannelTo(ghat, g, p)
-		ffwd.Execute()
-		gfwd.Execute()
-		for u := 0; u < work.X; u++ {
-			for v := 0; v < work.Y; v++ {
-				if corr {
-					fhat.Set(u, v, fhat.At(u, v)*cmplx.Conj(ghat.At(u, v)))
-				} else {
-					fhat.Set(u, v, fhat.At(u, v)*ghat.At(u, v))
-				}
-			}
-		}
-		finv.Execute()
-		// Sum response over multiple channels.
-		// Scale such that convolution theorem holds.
-		for u := r.Min.X; u < r.Max.X; u++ {
-			for v := r.Min.Y; v < r.Max.Y; v++ {
-				i, j := u-r.Min.X, v-r.Min.Y
-				h.Set(i, j, h.At(i, j)+real(fhat.At(u, v))/n)
-			}
-		}
-	}
-	return h, nil
-}
-
-func ConvMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {
-	if err := errIfChannelsNotEq(f, g); err != nil {
-		panic(err)
-	}
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil, nil
-	}
-	return convMultiNaive(f, g, false)
-}
-
+// CorrMultiNaive computes the correlation of
+// a multi-channel image with a multi-channel filter.
+// 	h[u, v] = sum_p (f_p corr g_p)[u, v]
 func CorrMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
@@ -124,21 +52,26 @@ func CorrMultiNaive(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if out.Eq(image.ZP) {
 		return nil, nil
 	}
-	return convMultiNaive(f, g, true)
+	h := rimg64.New(out.X, out.Y)
+	for i := 0; i < out.X; i++ {
+		for j := 0; j < out.Y; j++ {
+			var total float64
+			for u := 0; u < g.Width; u++ {
+				for v := 0; v < g.Height; v++ {
+					for p := 0; p < f.Channels; p++ {
+						total += f.At(i+u, j+v, p) * g.At(u, v, p)
+					}
+				}
+			}
+			h.Set(i, j, total)
+		}
+	}
+	return h, nil
 }
 
-func ConvMultiFFT(f, g *rimg64.Multi) (*rimg64.Image, error) {
-	if err := errIfChannelsNotEq(f, g); err != nil {
-		panic(err)
-	}
-	out := ValidSize(f.Size(), g.Size())
-	if out.Eq(image.ZP) {
-		return nil, nil
-	}
-	work, _ := FFT2Size(f.Size())
-	return convMultiFFT(f, g, work, false)
-}
-
+// CorrMultiBankFFT computes the correlation of
+// a multi-channel image with a multi-channel filter.
+// 	h[u, v] = sum_p (f_p corr g_p)[u, v]
 func CorrMultiFFT(f, g *rimg64.Multi) (*rimg64.Image, error) {
 	if err := errIfChannelsNotEq(f, g); err != nil {
 		panic(err)
@@ -148,5 +81,83 @@ func CorrMultiFFT(f, g *rimg64.Multi) (*rimg64.Image, error) {
 		return nil, nil
 	}
 	work, _ := FFT2Size(f.Size())
-	return convMultiFFT(f, g, work, true)
+	fhat := fftw.NewArray2(work.X, work.Y)
+	ghat := fftw.NewArray2(work.X, work.Y)
+	ffwd := fftw.NewPlan2(fhat, fhat, fftw.Forward, fftw.Estimate)
+	defer ffwd.Destroy()
+	gfwd := fftw.NewPlan2(ghat, ghat, fftw.Forward, fftw.Estimate)
+	defer gfwd.Destroy()
+	hhat := fftw.NewArray2(work.X, work.Y)
+	for p := 0; p < f.Channels; p++ {
+		// Take transform of each channel.
+		copyChannelTo(fhat, f, p)
+		ffwd.Execute()
+		copyChannelTo(ghat, g, p)
+		gfwd.Execute()
+		addMul(hhat, ghat, fhat)
+	}
+	n := float64(work.X * work.Y)
+	scale(complex(1/n, 0), hhat)
+	fftw.IFFT2To(hhat, hhat)
+	h := rimg64.New(out.X, out.Y)
+	copyRealTo(h, hhat)
+	return h, nil
+}
+
+// CorrMultiBLAS computes the correlation of
+// a multi-channel image with a multi-channel filter.
+// 	h[u, v] = sum_q (f_q corr g_q)[u, v]
+func CorrMultiBLAS(f, g *rimg64.Multi) (*rimg64.Image, error) {
+	out := ValidSize(f.Size(), g.Size())
+	if out.X <= 0 || out.Y <= 0 {
+		return nil, nil
+	}
+	h := rimg64.New(out.X, out.Y)
+	// Size of filters.
+	m, n, k := g.Width, g.Height, g.Channels
+	// Express as dense matrix multiplication.
+	//   h[u, v] = sum_q (f_q corr g_q)[u, v]
+	//   y(h) = A(f) x(g)
+	// where A is (M-m+1)(N-n+1) by mnk.
+	a := blas.NewMat(h.Width*h.Height, m*n*k)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				var s int
+				for i := 0; i < g.Width; i++ {
+					for j := 0; j < g.Height; j++ {
+						for q := 0; q < g.Channels; q++ {
+							a.Set(r, s, f.At(u+i, v+j, q))
+							s++
+						}
+					}
+				}
+				r++
+			}
+		}
+	}
+	x := blas.NewMat(m*n*k, 1)
+	{
+		var r int
+		for i := 0; i < g.Width; i++ {
+			for j := 0; j < g.Height; j++ {
+				for q := 0; q < g.Channels; q++ {
+					x.Set(r, 0, g.At(i, j, q))
+					r++
+				}
+			}
+		}
+	}
+	y := blas.MatMul(1, a, x)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				h.Set(u, v, y.At(r, 0))
+				r++
+			}
+		}
+	}
+	return h, nil
 }

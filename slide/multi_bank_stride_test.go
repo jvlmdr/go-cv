@@ -7,6 +7,33 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
+func TestCorrMultiBankStrideNaive_vsDecimate(t *testing.T) {
+	const (
+		numIn  = 3
+		numOut = 4
+		eps    = 1e-9
+	)
+	for _, q := range strideCases {
+		f := randMulti(q.ImSize.X, q.ImSize.Y, numIn)
+		g := randMultiBank(q.TmplSize.X, q.TmplSize.Y, numIn, numOut)
+		h, err := slide.CorrMultiBankNaive(f, g)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		want := slide.DecimateMulti(h, q.K)
+		got, err := slide.CorrMultiBankStrideNaive(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		if err := errIfNotEqMulti(want, got, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+	}
+}
+
 func TestCorrMultiBankStrideFFT_vsNaive(t *testing.T) {
 	const (
 		m      = 40
@@ -59,78 +86,72 @@ func TestCorrMultiBankStrideBLAS_vsNaive(t *testing.T) {
 	}
 }
 
-func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_4_Out_32_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_32_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_16x16_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, true, false)
-}
-
-func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_4_Out_32_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_32_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_32_Out_32_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 32, 4, false, true)
-}
-
-func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_16x16_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, false, true)
-}
-
 func BenchmarkCorrMultiBankStrideNaive_Im_640x480_Tmpl_3x3_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, false, false)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankStrideNaive_Im_640x480_Tmpl_3x3_In_4_Out_32_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, false, false)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankStrideNaive_Im_640x480_Tmpl_3x3_In_32_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, false, false)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, slide.Naive)
 }
 
 func BenchmarkCorrMultiBankStrideNaive_Im_640x480_Tmpl_16x16_In_4_Out_4_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, false, false)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, slide.Naive)
+}
+
+func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_4_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_4_Out_32_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_3x3_In_32_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_16x16_In_4_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, slide.FFT)
 }
 
 func BenchmarkCorrMultiBankStrideFFT_Im_640x480_Tmpl_16x16_In_4_Out_96_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 96, 4, true, false)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 96, 4, slide.FFT)
+}
+
+func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_4_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_4_Out_32_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, 32, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_32_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 4, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_3x3_In_32_Out_32_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(3, 3), 32, 32, 4, slide.BLAS)
+}
+
+func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_16x16_In_4_Out_4_Stride_4(b *testing.B) {
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, 4, slide.BLAS)
 }
 
 func BenchmarkCorrMultiBankStrideBLAS_Im_640x480_Tmpl_16x16_In_4_Out_96_Stride_4(b *testing.B) {
-	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 96, 4, false, true)
+	benchmarkCorrMultiBankStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, 96, 4, slide.BLAS)
 }
 
-func benchmarkCorrMultiBankStride(b *testing.B, im, tmpl image.Point, in, out, stride int, fft, blas bool) {
+func benchmarkCorrMultiBankStride(b *testing.B, im, tmpl image.Point, in, out, stride int, algo slide.Algo) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		f := randMulti(im.X, im.Y, in)
 		g := randMultiBank(tmpl.X, tmpl.Y, in, out)
 		b.StartTimer()
-		if fft {
-			slide.CorrMultiBankStrideFFT(f, g, stride)
-		} else if blas {
-			slide.CorrMultiBankStrideBLAS(f, g, stride)
-		} else {
-			slide.CorrMultiBankStrideNaive(f, g, stride)
-		}
+		slide.CorrMultiBankStrideAlgo(f, g, stride, algo)
 	}
 }

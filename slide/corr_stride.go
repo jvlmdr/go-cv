@@ -5,11 +5,11 @@ import (
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
+	"github.com/jvlmdr/lin-go/blas"
 )
 
-// CorrStrideNaive computes the correlation of
-// a multi-channel image with a multi-channel filter.
-// 	h[u, v] = sum_q (f_q corr g_q)[u, v]
+// CorrStrideNaive computes the strided correlation of an image with a filter.
+// 	h[u, v] = (f corr g)[stride*u, stride*v]
 func CorrStrideNaive(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
 	out := ValidSizeStride(f.Size(), g.Size(), stride)
 	h := rimg64.New(out.X, out.Y)
@@ -28,9 +28,8 @@ func CorrStrideNaive(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
 	return h, nil
 }
 
-// CorrStrideFFT computes the correlation of
-// a multi-channel image with a multi-channel filter.
-// 	h[u, v] = sum_q (f_q corr g_q)[u, v]
+// CorrStrideFFT computes the strided correlation of an image with a filter.
+// 	h[u, v] = (f corr g)[stride*u, stride*v]
 func CorrStrideFFT(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
 	out := ValidSizeStride(f.Size(), g.Size(), stride)
 	if out.X <= 0 || out.Y <= 0 {
@@ -80,5 +79,60 @@ func CorrStrideFFT(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
 	scale(alpha, hhat)
 	fftw.IFFT2To(hhat, hhat)
 	copyRealTo(h, hhat)
+	return h, nil
+}
+
+// CorrStrideBLAS computes the strided correlation of an image with a filter.
+// 	h[u, v] = (f corr g)[stride*u, stride*v]
+func CorrStrideBLAS(f, g *rimg64.Image, stride int) (*rimg64.Image, error) {
+	out := ValidSizeStride(f.Size(), g.Size(), stride)
+	if out.X <= 0 || out.Y <= 0 {
+		return nil, nil
+	}
+	h := rimg64.New(out.X, out.Y)
+	// Size of filters.
+	m, n := g.Width, g.Height
+	// Express as dense matrix multiplication.
+	//   h[u, v] = (f corr g)[stride*u, stride*v]
+	//   y(h) = A(f) x(g)
+	// where A is wh by mn
+	// with w = ceil[(M-m+1)/stride],
+	//      h = ceil[(N-n+1)/stride].
+	a := blas.NewMat(h.Width*h.Height, m*n)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				var s int
+				for i := 0; i < g.Width; i++ {
+					for j := 0; j < g.Height; j++ {
+						a.Set(r, s, f.At(stride*u+i, stride*v+j))
+						s++
+					}
+				}
+				r++
+			}
+		}
+	}
+	x := blas.NewMat(m*n, 1)
+	{
+		var r int
+		for i := 0; i < g.Width; i++ {
+			for j := 0; j < g.Height; j++ {
+				x.Set(r, 0, g.At(i, j))
+				r++
+			}
+		}
+	}
+	y := blas.MatMul(1, a, x)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				h.Set(u, v, y.At(r, 0))
+				r++
+			}
+		}
+	}
 	return h, nil
 }

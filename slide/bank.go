@@ -32,12 +32,13 @@ func CorrBankNaive(f *rimg64.Image, g *Bank) (*rimg64.Multi, error) {
 	for u := 0; u < h.Width; u++ {
 		for v := 0; v < h.Height; v++ {
 			for p := 0; p < h.Channels; p++ {
+				var total float64
 				for i := 0; i < g.Width; i++ {
 					for j := 0; j < g.Height; j++ {
-						val := f.At(i+u, j+v) * g.Filters[p].At(i, j)
-						h.Set(u, v, p, val)
+						total += f.At(i+u, j+v) * g.Filters[p].At(i, j)
 					}
 				}
+				h.Set(u, v, p, total)
 			}
 		}
 	}

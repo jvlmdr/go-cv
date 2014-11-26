@@ -5,6 +5,7 @@ import (
 
 	"github.com/jvlmdr/go-cv/rimg64"
 	"github.com/jvlmdr/go-fftw/fftw"
+	"github.com/jvlmdr/lin-go/blas"
 )
 
 // CorrMultiStrideNaive computes the correlation of
@@ -80,7 +81,7 @@ func CorrMultiStrideFFT(f, g *rimg64.Multi, stride int) (*rimg64.Image, error) {
 				ffwd.Execute()
 				copyChannelStrideTo(ghat, g, k, stride, image.Pt(i, j))
 				gfwd.Execute()
-				addMul(hhat, fhat, ghat)
+				addMul(hhat, ghat, fhat)
 			}
 		}
 	}
@@ -89,5 +90,65 @@ func CorrMultiStrideFFT(f, g *rimg64.Multi, stride int) (*rimg64.Image, error) {
 	scale(alpha, hhat)
 	fftw.IFFT2To(hhat, hhat)
 	copyRealTo(h, hhat)
+	return h, nil
+}
+
+// CorrMultiStrideBLAS computes the strided correlation of
+// a multi-channel image with a multi-channel filter.
+// 	h[u, v] = sum_q (f_q corr g_q)[stride*u, stride*v]
+func CorrMultiStrideBLAS(f, g *rimg64.Multi, stride int) (*rimg64.Image, error) {
+	out := ValidSizeStride(f.Size(), g.Size(), stride)
+	if out.X <= 0 || out.Y <= 0 {
+		return nil, nil
+	}
+	h := rimg64.New(out.X, out.Y)
+	// Size of filters.
+	m, n, k := g.Width, g.Height, g.Channels
+	// Express as dense matrix multiplication.
+	//   h[u, v] = sum_q (f_q corr g_q)[stride*u, stride*v]
+	//   y(h) = A(f) x(g)
+	// where A is wh by mnk
+	// with w = ceil[(M-m+1)/stride],
+	//      h = ceil[(N-n+1)/stride].
+	a := blas.NewMat(h.Width*h.Height, m*n*k)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				var s int
+				for i := 0; i < g.Width; i++ {
+					for j := 0; j < g.Height; j++ {
+						for q := 0; q < g.Channels; q++ {
+							a.Set(r, s, f.At(stride*u+i, stride*v+j, q))
+							s++
+						}
+					}
+				}
+				r++
+			}
+		}
+	}
+	x := blas.NewMat(m*n*k, 1)
+	{
+		var r int
+		for i := 0; i < g.Width; i++ {
+			for j := 0; j < g.Height; j++ {
+				for q := 0; q < g.Channels; q++ {
+					x.Set(r, 0, g.At(i, j, q))
+					r++
+				}
+			}
+		}
+	}
+	y := blas.MatMul(1, a, x)
+	{
+		var r int
+		for u := 0; u < h.Width; u++ {
+			for v := 0; v < h.Height; v++ {
+				h.Set(u, v, y.At(r, 0))
+				r++
+			}
+		}
+	}
 	return h, nil
 }

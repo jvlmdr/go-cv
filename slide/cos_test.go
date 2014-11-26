@@ -56,7 +56,6 @@ func TestCosCorr(t *testing.T) {
 	}
 }
 
-// Explicitly forms vectors and computes normalized dot product.
 func TestCosCorrMulti(t *testing.T) {
 	const (
 		m   = 4
@@ -79,6 +78,7 @@ func TestCosCorrMulti(t *testing.T) {
 	}
 }
 
+// Explicitly forms vectors and computes normalized dot product.
 func cosCorrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
 	h := rimg64.New(f.Width-g.Width+1, f.Height-g.Height+1)
 	n := g.Width * g.Height * g.Channels

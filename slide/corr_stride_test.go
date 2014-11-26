@@ -272,28 +272,28 @@ func TestCorrStrideNaive(t *testing.T) {
 	}
 }
 
+var strideCases = []struct {
+	ImSize   image.Point
+	TmplSize image.Point
+	K        int
+}{
+	{ImSize: image.Pt(8, 10), TmplSize: image.Pt(3, 2), K: 5},
+	{ImSize: image.Pt(100, 1), TmplSize: image.Pt(1, 1), K: 5},
+	{ImSize: image.Pt(1, 100), TmplSize: image.Pt(1, 1), K: 5},
+	{ImSize: image.Pt(43, 64), TmplSize: image.Pt(4, 5), K: 3},
+	{ImSize: image.Pt(43, 64), TmplSize: image.Pt(5, 4), K: 3},
+	{ImSize: image.Pt(64, 43), TmplSize: image.Pt(4, 5), K: 3},
+	{ImSize: image.Pt(64, 43), TmplSize: image.Pt(5, 4), K: 3},
+	{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 32},
+	{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 32},
+	{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 31},
+	{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 31},
+	{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 10000},
+}
+
 func TestCorrStrideNaive_vsDecimate(t *testing.T) {
 	const eps = 1e-9
-	cases := []struct {
-		ImSize   image.Point
-		TmplSize image.Point
-		K        int
-	}{
-		{ImSize: image.Pt(8, 10), TmplSize: image.Pt(3, 2), K: 5},
-		{ImSize: image.Pt(100, 1), TmplSize: image.Pt(1, 1), K: 5},
-		{ImSize: image.Pt(1, 100), TmplSize: image.Pt(1, 1), K: 5},
-		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(4, 5), K: 3},
-		{ImSize: image.Pt(43, 64), TmplSize: image.Pt(5, 4), K: 3},
-		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(4, 5), K: 3},
-		{ImSize: image.Pt(64, 43), TmplSize: image.Pt(5, 4), K: 3},
-		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 32},
-		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 32},
-		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(3, 2), K: 31},
-		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 31},
-		{ImSize: image.Pt(63, 127), TmplSize: image.Pt(2, 3), K: 10000},
-	}
-
-	for _, q := range cases {
+	for _, q := range strideCases {
 		f := randImage(q.ImSize.X, q.ImSize.Y)
 		g := randImage(q.TmplSize.X, q.TmplSize.Y)
 		h, err := slide.CorrNaive(f, g)
@@ -311,5 +311,83 @@ func TestCorrStrideNaive_vsDecimate(t *testing.T) {
 			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
 			continue
 		}
+	}
+}
+
+func TestCorrStrideFFT_vsNaive(t *testing.T) {
+	const eps = 1e-9
+	for _, q := range strideCases {
+		f := randImage(q.ImSize.X, q.ImSize.Y)
+		g := randImage(q.TmplSize.X, q.TmplSize.Y)
+		naive, err := slide.CorrStrideNaive(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		fft, err := slide.CorrStrideFFT(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		if err := errIfNotEqImage(naive, fft, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+	}
+}
+
+func TestCorrStrideBLAS_vsNaive(t *testing.T) {
+	const eps = 1e-9
+	for _, q := range strideCases {
+		f := randImage(q.ImSize.X, q.ImSize.Y)
+		g := randImage(q.TmplSize.X, q.TmplSize.Y)
+		naive, err := slide.CorrStrideNaive(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		blas, err := slide.CorrStrideBLAS(f, g, q.K)
+		if err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+		if err := errIfNotEqImage(naive, blas, eps); err != nil {
+			t.Errorf("im %v, tmpl %v, stride %d: %v", q.ImSize, q.TmplSize, q.K, err)
+			continue
+		}
+	}
+}
+
+func BenchmarkCorrStrideNaive_Im_640x480_Tmpl_3x3_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.Naive)
+}
+
+func BenchmarkCorrStrideNaive_Im_640x480_Tmpl_16x16_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.Naive)
+}
+
+func BenchmarkCorrStrideFFT_Im_640x480_Tmpl_3x3_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.FFT)
+}
+
+func BenchmarkCorrStrideFFT_Im_640x480_Tmpl_16x16_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.FFT)
+}
+
+func BenchmarkCorrStrideBLAS_Im_640x480_Tmpl_3x3_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.BLAS)
+}
+
+func BenchmarkCorrStrideBLAS_Im_640x480_Tmpl_16x16_Stride_4(b *testing.B) {
+	benchmarkCorrStride(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.BLAS)
+}
+
+func benchmarkCorrStride(b *testing.B, im, tmpl image.Point, stride int, algo slide.Algo) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		f := randImage(im.X, im.Y)
+		g := randImage(tmpl.X, tmpl.Y)
+		b.StartTimer()
+		slide.CorrStrideAlgo(f, g, stride, algo)
 	}
 }
