@@ -1,6 +1,10 @@
 package featset
 
-import "github.com/jvlmdr/go-cv/rimg64"
+import (
+	"image"
+
+	"github.com/jvlmdr/go-cv/rimg64"
+)
 
 func init() {
 	RegisterReal("channel-interval", func() Real { return new(ChannelInterval) })
@@ -24,6 +28,9 @@ func (phi *ChannelInterval) Apply(f *rimg64.Multi) (*rimg64.Multi, error) {
 	return g, nil
 }
 
+func (phi *ChannelInterval) Size(x image.Point) image.Point { return x }
+func (phi *ChannelInterval) Channels() int                  { return phi.B - phi.A }
+
 func (phi *ChannelInterval) Marshaler() *RealMarshaler {
 	return &RealMarshaler{"channel-interval", phi}
 }
@@ -32,22 +39,25 @@ func (phi *ChannelInterval) Transform() Real { return phi }
 
 // SelectChannels takes a subset of channels in the given order.
 type SelectChannels struct {
-	Channels []int
+	Set []int
 }
 
 func (phi *SelectChannels) Rate() int { return 1 }
 
 func (phi *SelectChannels) Apply(f *rimg64.Multi) (*rimg64.Multi, error) {
-	g := rimg64.NewMulti(f.Width, f.Height, len(phi.Channels))
+	g := rimg64.NewMulti(f.Width, f.Height, len(phi.Set))
 	for u := 0; u < f.Width; u++ {
 		for v := 0; v < f.Height; v++ {
-			for i, p := range phi.Channels {
+			for i, p := range phi.Set {
 				g.Set(u, v, i, f.At(u, v, p))
 			}
 		}
 	}
 	return g, nil
 }
+
+func (phi *SelectChannels) Size(x image.Point) image.Point { return x }
+func (phi *SelectChannels) Channels() int                  { return len(phi.Set) }
 
 func (phi *SelectChannels) Marshaler() *RealMarshaler {
 	return &RealMarshaler{"select-channels", phi}

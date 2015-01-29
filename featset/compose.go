@@ -43,6 +43,14 @@ func (phi *Compose) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return phi.Outer.Apply(z)
 }
 
+func (phi *Compose) Size(x image.Point) image.Point {
+	return phi.Outer.Size(phi.Inner.Size(x))
+}
+
+func (phi *Compose) Channels() int {
+	return phi.Outer.Channels()
+}
+
 func (phi *Compose) Marshaler() *RealMarshaler {
 	// Obtain marshaler for each member.
 	return &RealMarshaler{"compose", &Compose{
@@ -76,6 +84,14 @@ func (phi *ComposeImage) Apply(im image.Image) (*rimg64.Multi, error) {
 		return nil, err
 	}
 	return phi.Outer.Apply(z)
+}
+
+func (phi *ComposeImage) Size(x image.Point) image.Point {
+	return phi.Outer.Size(phi.Inner.Size(x))
+}
+
+func (phi *ComposeImage) Channels() int {
+	return phi.Outer.Channels()
 }
 
 func (phi *ComposeImage) Marshaler() *ImageMarshaler {

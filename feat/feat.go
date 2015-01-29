@@ -27,6 +27,11 @@ type Image interface {
 	Apply(image.Image) (*rimg64.Multi, error)
 	// Integer downsample rate.
 	Rate() int
+	// The size of the feature image
+	// computed from an input image.
+	Size(image.Point) image.Point
+	// The number of channels.
+	Channels() int
 }
 
 // Real defines a transform of a real-valued image.
@@ -35,4 +40,9 @@ type Real interface {
 	Apply(*rimg64.Multi) (*rimg64.Multi, error)
 	// Integer downsample rate.
 	Rate() int
+	// The size of the feature image
+	// computed from an input image.
+	Size(image.Point) image.Point
+	// The number of channels.
+	Channels() int
 }

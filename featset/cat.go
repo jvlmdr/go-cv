@@ -110,6 +110,29 @@ func (phi *Concat) Apply(x *rimg64.Multi) (*rimg64.Multi, error) {
 	return z, nil
 }
 
+func (phi *Concat) Size(x image.Point) image.Point {
+	var size image.Point
+	for i := 0; i < phi.Elems.Len(); i++ {
+		curr := phi.Elems.At(i).Size(x)
+		if i == 0 {
+			size = curr
+			continue
+		}
+		if !size.Eq(curr) {
+			panic(fmt.Sprintf("different image sizes: %v, %v", size, curr))
+		}
+	}
+	return size
+}
+
+func (phi *Concat) Channels() int {
+	var n int
+	for i := 0; i < phi.Elems.Len(); i++ {
+		n += phi.Elems.At(i).Channels()
+	}
+	return n
+}
+
 func (phi *Concat) Marshaler() *RealMarshaler {
 	// Obtain marshaler for each member.
 	ms := make([]*RealMarshaler, phi.Elems.Len())

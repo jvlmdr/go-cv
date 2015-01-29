@@ -25,6 +25,10 @@ func (t Transform) Apply(im image.Image) (*rimg64.Multi, error) {
 	return HOG(rimg64.FromColor(im), t.Conf), nil
 }
 
+func (t Transform) Size(x image.Point) image.Point { return FeatSize(x, t.Conf) }
+
+func (t Transform) Channels() int { return t.Conf.Channels() }
+
 func (t Transform) Marshaler() *featset.ImageMarshaler {
 	return &featset.ImageMarshaler{"hog", t}
 }
@@ -52,6 +56,20 @@ type Config struct {
 	NoTexture bool
 	// Do not let gradient intensities be less than some value.
 	NoClip bool
+}
+
+func (conf Config) Channels() int {
+	var channels int
+	if !conf.NoContrastVar {
+		channels += 2 * conf.Angles
+	}
+	if !conf.NoContrastInvar {
+		channels += conf.Angles
+	}
+	if !conf.NoTexture {
+		channels += 4
+	}
+	return channels
 }
 
 type point struct {
@@ -102,17 +120,6 @@ func adjSum(f *rimg64.Image, x1, y1, x2, y2 int) float64 {
 
 func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 	const eps = 0.0001
-	var channels int
-	if !conf.NoContrastVar {
-		channels += 2 * conf.Angles
-	}
-	if !conf.NoContrastInvar {
-		channels += conf.Angles
-	}
-	if !conf.NoTexture {
-		channels += 4
-	}
-
 	// Leave a one-pixel border to compute derivatives.
 	inside := image.Rectangle{image.ZP, f.Size()}.Inset(1)
 	// Leave a half-cell border.
@@ -176,7 +183,7 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 		}
 	}
 
-	feat := rimg64.NewMulti(out.X, out.Y, channels)
+	feat := rimg64.NewMulti(out.X, out.Y, conf.Channels())
 	for x := 0; x < out.X; x++ {
 		for y := 0; y < out.Y; y++ {
 			a, b := x+1, y+1
