@@ -29,8 +29,13 @@ func (p PadRect) Bottom() int { return p.Size.Y - p.Int.Max.Y }
 
 // Takes a bounding box in an image r.
 // Coerces it to the aspect ratio of target.Int according to mode.
-// Returns the rectangle which, when resized to target.Size, will have the coerced bounding box in target.Int.
+// Returns the rectangle which, when resized to target.Size,
+// will have the bounding box in target.Int.
+// Panics if the target has non-positive interior.
 func FitRect(orig image.Rectangle, target PadRect, mode string) (scale float64, fit image.Rectangle) {
+	if target.Int.Dx() <= 0 || target.Int.Dy() <= 0 {
+		panic("empty interior")
+	}
 	aspect := float64(target.Int.Dx()) / float64(target.Int.Dy())
 	// Width and height of box in image.
 	w, h := float64(orig.Dx()), float64(orig.Dy())
@@ -53,7 +58,8 @@ func FitRect(orig image.Rectangle, target PadRect, mode string) (scale float64, 
 }
 
 // Change the aspect ratio of a rectangle.
-// The mode can be "area", "width", "height", "fit" or "fill".
+// The mode can be "area", "width", "height", "fit", "fill" or "stretch".
+// Panics if mode is empty or unrecognized.
 func SetAspect(w, h, aspect float64, mode string) (float64, float64) {
 	switch mode {
 	case "area":
@@ -75,6 +81,10 @@ func SetAspect(w, h, aspect float64, mode string) (float64, float64) {
 	case "fill":
 		// Grow one dimension.
 		w, h = math.Max(w, h*aspect), math.Max(h, w/aspect)
+	case "stretch":
+		// Do nothing.
+	case "":
+		panic("no mode specified")
 	default:
 		panic("unknown mode: " + mode)
 	}
