@@ -83,9 +83,17 @@ func PointsOp(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore floa
 	var resp *rimg64.Image
 	switch op {
 	case Dot:
-		resp = slide.CorrMulti(im, tmpl)
+		var err error
+		resp, err = slide.CorrMulti(im, tmpl)
+		if err != nil {
+			panic(err)
+		}
 	case Cos:
-		resp = slide.CosCorrMulti(im, tmpl, slide.Auto)
+		var err error
+		resp, err = slide.CosCorrMulti(im, tmpl, slide.Auto)
+		if err != nil {
+			panic(err)
+		}
 	default:
 		panic(fmt.Sprintf("unknown operation: %v", op))
 	}
