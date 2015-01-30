@@ -7,126 +7,96 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
-// Compare naive and Fourier implementations.
-func TestCorrMultiBankFFT_vsNaive(t *testing.T) {
+func TestCorrBankFFT_vsNaive(t *testing.T) {
 	const (
-		m   = 40
-		n   = 30
-		w   = 100
-		h   = 80
-		p   = 4
-		q   = 6
-		eps = 1e-12
+		m      = 40
+		n      = 30
+		w      = 100
+		h      = 80
+		numOut = 6
+		eps    = 1e-9
 	)
-
-	f := randMulti(w, h, p)
-	g := randMultiBank(w, h, p, q)
-
-	naive, err := slide.CorrMultiBankNaive(f, g)
+	f := randImage(w, h)
+	g := randBank(w, h, numOut)
+	naive, err := slide.CorrBankNaive(f, g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fourier, err := slide.CorrMultiBankFFT(f, g)
+	fft, err := slide.CorrBankFFT(f, g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := errIfNotEqMulti(naive, fourier, 1e-9); err != nil {
+	if err := errIfNotEqMulti(naive, fft, eps); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// Compare naive and Fourier implementations.
-func TestCorrMultiBankBLAS_vsNaive(t *testing.T) {
+func TestCorrBankBLAS_vsNaive(t *testing.T) {
 	const (
-		m   = 40
-		n   = 30
-		w   = 100
-		h   = 80
-		p   = 4
-		q   = 6
-		eps = 1e-12
+		m      = 40
+		n      = 30
+		w      = 100
+		h      = 80
+		numOut = 6
+		eps    = 1e-9
 	)
-
-	f := randMulti(w, h, p)
-	g := randMultiBank(w, h, p, q)
-
-	naive, err := slide.CorrMultiBankNaive(f, g)
+	f := randImage(w, h)
+	g := randBank(w, h, numOut)
+	naive, err := slide.CorrBankNaive(f, g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	blas, err := slide.CorrMultiBankBLAS(f, g)
+	blas, err := slide.CorrBankBLAS(f, g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := errIfNotEqMulti(naive, blas, 1e-9); err != nil {
+	if err := errIfNotEqMulti(naive, blas, eps); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func BenchmarkCorrMultiBankFFT_640x480_3x3_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, true, false)
+func BenchmarkCorrBankNaive_Im_640x480_Tmpl_3x3_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.Naive)
 }
 
-func BenchmarkCorrMultiBankFFT_640x480_3x3_4_128(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 128, true, false)
+func BenchmarkCorrBankNaive_Im_640x480_Tmpl_3x3_Out_32(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, slide.Naive)
 }
 
-func BenchmarkCorrMultiBankFFT_640x480_3x3_128_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 128, 4, true, false)
+func BenchmarkCorrBankNaive_Im_640x480_Tmpl_16x16_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.Naive)
 }
 
-func BenchmarkCorrMultiBankFFT_640x480_16x16_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, true, false)
+func BenchmarkCorrBankFFT_Im_640x480_Tmpl_3x3_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.FFT)
 }
 
-func BenchmarkCorrMultiBankBLAS_640x480_3x3_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, false, true)
+func BenchmarkCorrBankFFT_Im_640x480_Tmpl_3x3_Out_32(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, slide.FFT)
 }
 
-func BenchmarkCorrMultiBankBLAS_640x480_3x3_4_128(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 128, false, true)
+func BenchmarkCorrBankFFT_Im_640x480_Tmpl_16x16_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.FFT)
 }
 
-func BenchmarkCorrMultiBankBLAS_640x480_3x3_128_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 128, 4, false, true)
+func BenchmarkCorrBankBLAS_Im_640x480_Tmpl_3x3_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, slide.BLAS)
 }
 
-func BenchmarkCorrMultiBankBLAS_640x480_3x3_128_128(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 128, 128, false, true)
+func BenchmarkCorrBankBLAS_Im_640x480_Tmpl_3x3_Out_32(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(3, 3), 32, slide.BLAS)
 }
 
-func BenchmarkCorrMultiBankBLAS_640x480_16x16_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, false, true)
+func BenchmarkCorrBankBLAS_Im_640x480_Tmpl_16x16_Out_4(b *testing.B) {
+	benchmarkCorrBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, slide.BLAS)
 }
 
-func BenchmarkCorrMultiBankNaive_640x480_3x3_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 4, false, false)
-}
-
-func BenchmarkCorrMultiBankNaive_640x480_3x3_4_128(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 4, 128, false, false)
-}
-
-func BenchmarkCorrMultiBankNaive_640x480_3x3_128_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(3, 3), 128, 4, false, false)
-}
-
-func BenchmarkCorrMultiBankNaive_640x480_16x16_4_4(b *testing.B) {
-	benchmarkCorrMultiBank(b, image.Pt(640, 480), image.Pt(16, 16), 4, 4, false, false)
-}
-
-func benchmarkCorrMultiBank(b *testing.B, im, tmpl image.Point, in, out int, fft, blas bool) {
+func benchmarkCorrBank(b *testing.B, im, tmpl image.Point, out int, algo slide.Algo) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		f := randMulti(im.X, im.Y, in)
-		g := randMultiBank(tmpl.X, tmpl.Y, in, out)
+		f := randImage(im.X, im.Y)
+		g := randBank(tmpl.X, tmpl.Y, out)
 		b.StartTimer()
-		if fft {
-			slide.CorrMultiBankFFT(f, g)
-		} else if blas {
-			slide.CorrMultiBankBLAS(f, g)
-		} else {
-			slide.CorrMultiBankNaive(f, g)
-		}
+		slide.CorrBankAlgo(f, g, algo)
 	}
 }

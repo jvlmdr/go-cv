@@ -8,11 +8,16 @@ import (
 	"github.com/jvlmdr/go-cv/rimg64"
 )
 
-// CosCorr computes normalized cross-correlation without mean subtraction.
-func CosCorr(f, g *rimg64.Image, algo Algo) *rimg64.Image {
-	h := CorrAlgo(f, g, algo)
+// CosCorr computes normalized cross-correlation,
+// taking the cosine of two vectors instead of their inner product.
+// Normalization is performed using summed area tables.
+func CosCorr(f, g *rimg64.Image, algo Algo) (*rimg64.Image, error) {
+	h, err := CorrAlgo(f, g, algo)
+	if err != nil {
+		return nil, err
+	}
 	if h == nil {
-		return h
+		return h, nil
 	}
 	gInvNorm := invNorm(g)
 	fSqr := square(f)
@@ -25,7 +30,7 @@ func CosCorr(f, g *rimg64.Image, algo Algo) *rimg64.Image {
 			h.Set(i, j, fInvNorm*gInvNorm*h.At(i, j))
 		}
 	}
-	return h
+	return h, nil
 }
 
 func invNorm(f *rimg64.Image) float64 {
@@ -35,7 +40,7 @@ func invNorm(f *rimg64.Image) float64 {
 			norm += sqr(f.At(i, j))
 		}
 	}
-	norm = math.Sqrt(norm) // This cannot be negative.
+	norm = math.Sqrt(norm) // This will never be negative.
 	if norm == 0 {
 		return 0
 	}
@@ -71,16 +76,14 @@ func rectInvNorm(sqrsum *rimg64.Table, rect image.Rectangle) (invnorm float64) {
 	return 1 / math.Sqrt(sumSqr)
 }
 
-// NormCorr computes normalized cross-correlation.
-func NormCorrMulti(f, g *rimg64.Image) *rimg64.Image {
-	return convAuto(f, g, true)
-}
-
 // CosCorrMulti computes normalized cross-correlation without mean subtraction.
-func CosCorrMulti(f, g *rimg64.Multi, algo Algo) *rimg64.Image {
-	h := CorrMultiAlgo(f, g, algo)
+func CosCorrMulti(f, g *rimg64.Multi, algo Algo) (*rimg64.Image, error) {
+	h, err := CorrMultiAlgo(f, g, algo)
+	if err != nil {
+		return nil, err
+	}
 	if h == nil {
-		return h
+		return h, nil
 	}
 	gInvNorm := invNormMulti(g)
 	fSqr := squareMulti(f)
@@ -93,7 +96,7 @@ func CosCorrMulti(f, g *rimg64.Multi, algo Algo) *rimg64.Image {
 			h.Set(i, j, fInvNorm*gInvNorm*h.At(i, j))
 		}
 	}
-	return h
+	return h, nil
 }
 
 func invNormMulti(f *rimg64.Multi) float64 {

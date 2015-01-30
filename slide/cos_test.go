@@ -9,8 +9,6 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
-func sqr(x float64) float64 { return x * x }
-
 func TestCosCorr(t *testing.T) {
 	const eps = 1e-9
 	f := rimg64.FromRows([][]float64{
@@ -41,7 +39,10 @@ func TestCosCorr(t *testing.T) {
 		{2, 1, (3*4 + 1*1 + 5*3 + 2*3 + 4*2 + 1*1) / math.Sqrt(sqr(4)+sqr(1)+sqr(3)+sqr(3)+sqr(2)+sqr(1)) / gnorm},
 	}
 
-	h := slide.CosCorr(f, g, slide.Auto)
+	h, err := slide.CosCorr(f, g, slide.Auto)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if h.Width != 3 || h.Height != 2 {
 		t.Fatalf("wrong size: want %dx%d, got %dx%d", 3, 2, h.Width, h.Height)
 	}
@@ -52,6 +53,28 @@ func TestCosCorr(t *testing.T) {
 				c.I, c.J, c.Want, got,
 			)
 		}
+	}
+}
+
+func TestCosCorrMulti(t *testing.T) {
+	const (
+		m   = 4
+		n   = 3
+		w   = 20
+		h   = 16
+		c   = 3
+		eps = 1e-9
+	)
+
+	f := randMulti(w, h, c)
+	g := randMulti(m, n, c)
+	got, err := slide.CosCorrMulti(f, g, slide.Auto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := cosCorrMultiNaive(f, g)
+	if err := errIfNotEqImage(want, got, eps); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -79,23 +102,4 @@ func cosCorrMultiNaive(f, g *rimg64.Multi) *rimg64.Image {
 		}
 	}
 	return h
-}
-
-func TestCosCorrMulti(t *testing.T) {
-	const (
-		m   = 4
-		n   = 3
-		w   = 20
-		h   = 16
-		c   = 3
-		eps = 1e-9
-	)
-
-	f := randMulti(w, h, c)
-	g := randMulti(m, n, c)
-	got := slide.CosCorrMulti(f, g, slide.Auto)
-	want := cosCorrMultiNaive(f, g)
-	if err := errIfNotEqImage(want, got, eps); err != nil {
-		t.Error(err)
-	}
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
+func sqr(x float64) float64 { return x * x }
+
 func randImage(width, height int) *rimg64.Image {
 	f := rimg64.New(width, height)
 	for i := 0; i < width; i++ {
@@ -29,6 +31,18 @@ func randMulti(width, height, channels int) *rimg64.Multi {
 		}
 	}
 	return f
+}
+
+func randBank(m, n, q int) *slide.Bank {
+	g := &slide.Bank{
+		Width:   m,
+		Height:  n,
+		Filters: make([]*rimg64.Image, q),
+	}
+	for i := range g.Filters {
+		g.Filters[i] = randImage(m, n)
+	}
+	return g
 }
 
 func randMultiBank(m, n, p, q int) *slide.MultiBank {
