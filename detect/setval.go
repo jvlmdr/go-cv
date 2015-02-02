@@ -1,8 +1,6 @@
 package detect
 
 import (
-	"fmt"
-	"log"
 	"sort"
 
 	"github.com/jvlmdr/go-ml/ml"
@@ -134,9 +132,7 @@ func (s valScoresDesc) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // MissRateAtFPPIs computes the miss rates at multiple
 // false-positive-per-image rates.
-// An error results if the number of false positives to
-// achieve some FPPI is not greater than zero.
-func MissRateAtFPPIs(valset *ValSet, fppis []float64) ([]float64, error) {
+func MissRateAtFPPIs(valset *ValSet, fppis []float64) []float64 {
 	// Construct cumulative count of true positives
 	// as threshold decreases.
 	n := len(valset.Dets)
@@ -163,11 +159,6 @@ func MissRateAtFPPIs(valset *ValSet, fppis []float64) ([]float64, error) {
 		// Obtain absolute number of false positives.
 		// Largest integer such that maxFalsePos / numImages <= fppi.
 		maxFalsePos := int(fppi * float64(valset.Images))
-		// This may be zero, in which case there are
-		// not enough images to measure miss rate at this FPPI.
-		if maxFalsePos < 1 {
-			return nil, fmt.Errorf("not enough images: fppi %g, images %d", fppi, valset.Images)
-		}
 		// Note that if the false positive is followed by true positives,
 		// then there will be several points with the same FPPI.
 		// falsePos[i] is the number of false positives in Dets[0, ..., i-1].
@@ -189,8 +180,15 @@ func MissRateAtFPPIs(valset *ValSet, fppis []float64) ([]float64, error) {
 		falseNeg := posDets - truePos
 		// Miss rate is false negatives / number of actual positives.
 		missRate := float64(falseNeg+valset.Misses) / float64(posDets+valset.Misses)
-		log.Printf("fppi %.3g, false pos %d, num dets %d, miss rate %.3g", fppi, maxFalsePos, l, missRate)
+		//log.Printf("fppi %.3g, false pos %d, num dets %d, miss rate %.3g", fppi, maxFalsePos, l, missRate)
 		missRates[i] = missRate
 	}
-	return missRates, nil
+	return missRates
+}
+
+// MissRateAtFPPI computes the miss rate at some false-positive-per-image rate.
+// More efficient to call MissRateAtFPPIs for multiple rates.
+func MissRateAtFPPI(valset *ValSet, fppi float64) float64 {
+	rates := MissRateAtFPPIs(valset, []float64{fppi})
+	return rates[0]
 }
