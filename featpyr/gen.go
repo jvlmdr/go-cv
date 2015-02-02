@@ -2,6 +2,7 @@ package featpyr
 
 import (
 	"image"
+	"time"
 
 	"github.com/jvlmdr/go-cv/feat"
 	"github.com/jvlmdr/go-cv/imgpyr"
@@ -15,10 +16,13 @@ type Generator struct {
 	Image     *imgpyr.Generator
 	Transform feat.Image
 	feat.Pad
+	// Cumulative time.
+	DurResize time.Duration
+	DurFeat   time.Duration
 }
 
 func NewGenerator(im *imgpyr.Generator, phi feat.Image, pad feat.Pad) *Generator {
-	return &Generator{im, phi, pad}
+	return &Generator{Image: im, Transform: phi, Pad: pad}
 }
 
 // Level describes one level of a pyramid Generator.
@@ -28,11 +32,15 @@ type Level struct {
 }
 
 func (pyr *Generator) First() (*Level, error) {
+	t := time.Now()
 	im := pyr.Image.First()
+	pyr.DurResize = time.Since(t)
 	if im == nil {
 		return nil, nil
 	}
+	t = time.Now()
 	x, err := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
+	pyr.DurFeat = time.Since(t)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +48,15 @@ func (pyr *Generator) First() (*Level, error) {
 }
 
 func (pyr *Generator) Next(curr *Level) (*Level, error) {
+	t := time.Now()
 	im := pyr.Image.Next(curr.Image)
+	pyr.DurResize += time.Since(t)
 	if im == nil {
 		return nil, nil
 	}
+	t = time.Now()
 	x, err := feat.ApplyPad(pyr.Transform, im.Image, pyr.Pad)
+	pyr.DurFeat += time.Since(t)
 	if err != nil {
 		return nil, err
 	}
