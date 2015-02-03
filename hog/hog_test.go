@@ -24,6 +24,9 @@ func TestHOG_VersusFGMR(t *testing.T) {
 		t.Fatal(err)
 	}
 	im, _, err := image.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Remove outside pixel before running C code.
 	rect := im.Bounds().Inset(1).Inset(sbin / 2)
@@ -108,4 +111,50 @@ func ensureDivis(src image.Image, m int) image.Image {
 func validSize(size, ref image.Point) bool {
 	return ((size.X == ref.X || size.X == ref.X-1) &&
 		(size.Y == ref.Y || size.Y == ref.Y-1))
+}
+
+func BenchmarkGo(b *testing.B) {
+	const (
+		sbin  = 8
+		fname = "000084.jpg"
+	)
+
+	// Load image.
+	file, err := os.Open(fname)
+	if err != nil {
+		b.Fatal(err)
+	}
+	im, _, err := image.Decode(file)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	f := rimg64.FromColor(im)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		HOG(f, FGMRConfig(sbin))
+	}
+}
+
+func BenchmarkC(b *testing.B) {
+	const (
+		sbin  = 8
+		fname = "000084.jpg"
+	)
+
+	// Load image.
+	file, err := os.Open(fname)
+	if err != nil {
+		b.Fatal(err)
+	}
+	im, _, err := image.Decode(file)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	f := rimg64.FromColor(im)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fgmr(f, sbin)
+	}
 }
