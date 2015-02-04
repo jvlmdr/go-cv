@@ -96,22 +96,32 @@ func maxGrad(f *rimg64.Multi, x, y int) (point, float64) {
 	return grad, max
 }
 
-// Returns an index in {0, ..., 2*n-1}.
-func quantAngle(grad point, n int) int {
+type quantizer []point
+
+func makeQuantizer(n int) quantizer {
+	u := make([]point, n)
+	for i := range u {
+		theta := float64(i) / float64(n) * math.Pi
+		u[i] = point{math.Cos(theta), math.Sin(theta)}
+	}
+	return u
+}
+
+// Quantize returns an index in {0, ..., 2*n-1}.
+func (u quantizer) quantize(grad point) int {
 	var (
-		q   int     = 0
+		arg int     = 0
 		max float64 = 0
 	)
-	for i := 0; i < n; i++ {
-		theta := float64(i) / float64(n) * math.Pi
-		dot := grad.X*math.Cos(theta) + grad.Y*math.Sin(theta)
+	for i, ui := range u {
+		dot := grad.X*ui.X + grad.Y*ui.Y
 		if dot > max {
-			q, max = i, dot
+			arg, max = i, dot
 		} else if -dot > max {
-			q, max = i+n, -dot
+			arg, max = i+len(u), -dot
 		}
 	}
-	return q
+	return arg
 }
 
 func adjSum(f *rimg64.Image, x1, y1, x2, y2 int) float64 {
@@ -138,6 +148,7 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 
 	// Accumulate edges into cell histograms.
 	hist := rimg64.NewMulti(cells.X, cells.Y, 2*conf.Angles)
+	quantizer := makeQuantizer(conf.Angles)
 	for a := vis.Min.X; a < vis.Max.X; a++ {
 		for b := vis.Min.Y; b < vis.Max.Y; b++ {
 			x, y := a-half-vis.Min.X, b-half-vis.Min.Y
@@ -145,7 +156,7 @@ func HOG(f *rimg64.Multi, conf Config) *rimg64.Multi {
 			grad, v := maxGrad(f, a, b)
 			v = math.Sqrt(v)
 			// Snap to orientation.
-			q := quantAngle(grad, conf.Angles)
+			q := quantizer.quantize(grad)
 
 			// Add to 4 histograms around pixel using bilinear interpolation.
 			xp := (float64(x)+0.5)/float64(conf.CellSize) - 0.5
