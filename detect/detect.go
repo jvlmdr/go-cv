@@ -1,7 +1,6 @@
 package detect
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/jvlmdr/go-cv/feat"
@@ -9,41 +8,46 @@ import (
 	"github.com/jvlmdr/go-cv/slide"
 )
 
-// Detect performs detection and non-max suppression at a single scale.
+// Detect performs detection and non-max suppression in a feature image.
 // It returns a list of scored rectangles in the original image (before padding and feature transform).
 // It is necessary to provide both the integer downsample rate of the feature transform
 // and the margin which was added to the image before taking the feature transform.
 // Calls detect.Score, detect.Sort, detect.Suppress.
-func Detect(im *rimg64.Multi, margin feat.Margin, tmpl *FeatTmpl, rate int, detopts DetFilter, suppropts SupprFilter) []Det {
-	dets := Score(im, margin, tmpl, rate, detopts)
+func Detect(im *rimg64.Multi, margin feat.Margin, rate int, scorer slide.Scorer, shape PadRect, detopts DetFilter, suppropts SupprFilter) ([]Det, error) {
+	dets, err := Score(im, margin, rate, scorer, shape, detopts)
+	if err != nil {
+		return nil, err
+	}
 	Sort(dets)
 	dets = Suppress(dets, suppropts.MaxNum, suppropts.Overlap)
-	return dets
+	return dets, nil
 }
 
-// Detect performs detection and non-max suppression at a single scale.
-// It returns a list of scored rectangles in the image.
-func DetectImage(im image.Image, phi feat.Image, pad feat.Pad, tmpl *FeatTmpl, detopts DetFilter, suppropts SupprFilter) ([]Det, error) {
+// DetectImage computes features and then calls Detect.
+func DetectImage(im image.Image, phi feat.Image, pad feat.Pad, scorer slide.Scorer, shape PadRect, detopts DetFilter, suppropts SupprFilter) ([]Det, error) {
 	f, err := feat.ApplyPad(phi, im, pad)
 	if err != nil {
 		return nil, err
 	}
-	return Detect(f, pad.Margin, tmpl, phi.Rate(), detopts, suppropts), nil
+	return Detect(f, pad.Margin, phi.Rate(), scorer, shape, detopts, suppropts)
 }
 
 // Score computes the score of all windows in an image at a single scale.
 // It does not perform non-max suppression.
 // It returns an unordered list of scored rectangles.
-func Score(im *rimg64.Multi, margin feat.Margin, tmpl *FeatTmpl, rate int, opts DetFilter) []Det {
+func Score(im *rimg64.Multi, margin feat.Margin, rate int, scorer slide.Scorer, shape PadRect, opts DetFilter) ([]Det, error) {
 	// Evaluate detector at all positions.
-	pts := Points(im, tmpl.Image, tmpl.Bias, opts.LocalMax, opts.MinScore)
+	pts, err := Points(im, scorer, opts.LocalMax, opts.MinScore)
+	if err != nil {
+		return nil, err
+	}
 	// Convert positions in the feature image to rectangles in the original image.
 	dets := make([]Det, len(pts))
 	for i, det := range pts {
-		rect := featPtToImRect(det.Point, rate, margin, tmpl.Interior)
+		rect := featPtToImRect(det.Point, rate, margin, shape.Int)
 		dets[i] = Det{det.Score, rect}
 	}
-	return dets
+	return dets, nil
 }
 
 // DetFilter specifies options to eliminate detections before non-max suppression.
@@ -60,48 +64,24 @@ type DetPos struct {
 	image.Point
 }
 
-// Performs detection without non-max suppression.
+// Points performs detection without non-max suppression.
 // It returns a list of unsorted scored positions in the feature image.
 //
 // If localmax is true, then points which have a neighbor greater than them are excluded.
 // Any windows less than minscore are excluded.
-func Points(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore float64) []DetPos {
-	return PointsOp(im, tmpl, bias, localmax, minscore, Dot)
-}
-
-type CorrOp int
-
-const (
-	Dot CorrOp = iota
-	Cos
-)
-
-func PointsOp(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore float64, op CorrOp) []DetPos {
-	if im.Width < tmpl.Width || im.Height < tmpl.Height {
-		return nil
+func Points(im *rimg64.Multi, scorer slide.Scorer, localmax bool, minscore float64) ([]DetPos, error) {
+	resp, err := slide.Score(im, scorer)
+	if err != nil {
+		return nil, err
 	}
-	var resp *rimg64.Image
-	switch op {
-	case Dot:
-		var err error
-		resp, err = slide.CorrMulti(im, tmpl)
-		if err != nil {
-			panic(err)
-		}
-	case Cos:
-		var err error
-		resp, err = slide.CosCorrMulti(im, tmpl, slide.Auto)
-		if err != nil {
-			panic(err)
-		}
-	default:
-		panic(fmt.Sprintf("unknown operation: %v", op))
+	if resp == nil {
+		return nil, nil
 	}
 	var dets []DetPos
 	// Iterate over positions and check criteria.
 	for u := 0; u < resp.Width; u++ {
 		for v := 0; v < resp.Height; v++ {
-			score := resp.At(u, v) + bias
+			score := resp.At(u, v)
 			if score < minscore {
 				continue
 			}
@@ -112,7 +92,7 @@ func PointsOp(im, tmpl *rimg64.Multi, bias float64, localmax bool, minscore floa
 			dets = append(dets, DetPos{score, image.Pt(u, v)})
 		}
 	}
-	return dets
+	return dets, nil
 }
 
 // Converts the position of a detection in a feature image to a rectangle in the intensity image.

@@ -1,21 +1,12 @@
 package detect
 
-import (
-	"image"
+import "github.com/jvlmdr/go-cv/slide"
 
-	"github.com/jvlmdr/go-cv/rimg64"
-)
-
+// FeatTmpl is an affine template.
 type FeatTmpl struct {
-	// Template in feature space.
-	Image *rimg64.Multi
-	Bias  float64
-	// Size in pixels.
-	Size image.Point
-	// Interior of window in pixels.
-	Interior image.Rectangle
-}
-
-func (tmpl *FeatTmpl) Bounds() image.Rectangle {
-	return image.Rectangle{image.ZP, tmpl.Size}
+	// Assigns a score to feature images of a fixed size.
+	Scorer *slide.AffineScorer
+	// The size of the image from which the features were computed,
+	// and the position of the bounding box within it.
+	PixelShape PadRect
 }

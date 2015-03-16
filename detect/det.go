@@ -12,12 +12,6 @@ type Det struct {
 	Rect  image.Rectangle
 }
 
-// Det describes one detection.
-type DetMaxEnsemble struct {
-	Score float64
-	Rect  image.Rectangle
-}
-
 // Sort sorts a list of detections descending by score.
 func Sort(dets []Det) {
 	if anyIsNaN(dets) {
