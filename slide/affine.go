@@ -55,6 +55,9 @@ func (f *AffineScorer) Slide(im *rimg64.Multi) (*rimg64.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	if y == nil {
+		return nil, nil
+	}
 	if f.Bias == 0 {
 		return y, nil
 	}
