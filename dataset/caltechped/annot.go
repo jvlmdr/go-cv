@@ -40,7 +40,7 @@ func Reasonable(obj Object) bool {
 		return false
 	}
 	// Minimum height 50 pixels.
-	if obj.Rect.Dx() < 50 {
+	if obj.Rect.Dy() < 50 {
 		return false
 	}
 	// At least 65% visible.
