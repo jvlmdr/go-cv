@@ -36,6 +36,9 @@ func FitRect(orig image.Rectangle, target PadRect, mode string) (scale float64, 
 	if target.Int.Dx() <= 0 || target.Int.Dy() <= 0 {
 		panic("empty interior")
 	}
+	if mode == "stretch" {
+		panic("stretch mode not supported by FitRect")
+	}
 	aspect := float64(target.Int.Dx()) / float64(target.Int.Dy())
 	// Width and height of box in image.
 	w, h := float64(orig.Dx()), float64(orig.Dy())
