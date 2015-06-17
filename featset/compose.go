@@ -47,6 +47,10 @@ func (phi *Compose) Size(x image.Point) image.Point {
 	return phi.Outer.Size(phi.Inner.Size(x))
 }
 
+func (phi *Compose) MinInputSize(y image.Point) image.Point {
+	return phi.Inner.MinInputSize(phi.Outer.MinInputSize(y))
+}
+
 func (phi *Compose) Channels() int {
 	return phi.Outer.Channels()
 }
@@ -88,6 +92,10 @@ func (phi *ComposeImage) Apply(im image.Image) (*rimg64.Multi, error) {
 
 func (phi *ComposeImage) Size(x image.Point) image.Point {
 	return phi.Outer.Size(phi.Inner.Size(x))
+}
+
+func (phi *ComposeImage) MinInputSize(y image.Point) image.Point {
+	return phi.Inner.MinInputSize(phi.Outer.MinInputSize(y))
 }
 
 func (phi *ComposeImage) Channels() int {

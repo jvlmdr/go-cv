@@ -158,3 +158,48 @@ func BenchmarkC(b *testing.B) {
 		fgmr(f, sbin)
 	}
 }
+
+func TestTransform_MinInputSize(t *testing.T) {
+	cases := []struct {
+		Bin   int
+		Image image.Point
+	}{
+		{8, image.Pt(140, 160)},
+		{8, image.Pt(141, 161)},
+		{8, image.Pt(142, 162)},
+		{8, image.Pt(143, 163)},
+		{8, image.Pt(144, 164)},
+		{8, image.Pt(145, 165)},
+		{8, image.Pt(146, 166)},
+		{8, image.Pt(147, 167)},
+		{9, image.Pt(140, 160)},
+		{9, image.Pt(141, 161)},
+		{9, image.Pt(142, 162)},
+		{9, image.Pt(143, 163)},
+		{9, image.Pt(144, 164)},
+		{9, image.Pt(145, 165)},
+		{9, image.Pt(146, 166)},
+		{9, image.Pt(147, 167)},
+		{9, image.Pt(148, 168)},
+	}
+	for _, x := range cases {
+		phi := Transform{FGMRConfig(x.Bin)}
+		origFeat := phi.Size(x.Image)
+		minInput := phi.MinInputSize(origFeat)
+		minFeat := phi.Size(minInput)
+		if !origFeat.Eq(minFeat) {
+			t.Errorf("min input size %v for feature size %v: got features of size %v", minInput, origFeat, minFeat)
+			continue
+		}
+		//t.Logf("input %v has same transform %v as %v", minInput, minFeat, origFeat)
+		for _, delta := range []image.Point{{1, 0}, {0, 1}, {1, 1}} {
+			nextInput := minInput.Sub(delta)
+			nextFeat := phi.Size(nextInput)
+			if nextFeat.X >= origFeat.X && nextFeat.Y >= origFeat.Y {
+				t.Errorf("found smaller input than %v for feature size %v: %v", minInput, origFeat, nextInput)
+				break
+			}
+			//t.Logf("smaller input %v has smaller transform %v than %v", nextInput, nextFeat, origFeat)
+		}
+	}
+}

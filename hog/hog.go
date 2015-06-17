@@ -25,9 +25,9 @@ func (t Transform) Apply(im image.Image) (*rimg64.Multi, error) {
 	return HOG(rimg64.FromColor(im), t.Conf), nil
 }
 
-func (t Transform) Size(x image.Point) image.Point { return FeatSize(x, t.Conf) }
-
-func (t Transform) Channels() int { return t.Conf.Channels() }
+func (t Transform) Size(x image.Point) image.Point         { return FeatSize(x, t.Conf) }
+func (t Transform) MinInputSize(x image.Point) image.Point { return MinInputSize(x, t.Conf) }
+func (t Transform) Channels() int                          { return t.Conf.Channels() }
 
 func (t Transform) Marshaler() *featset.ImageMarshaler {
 	return &featset.ImageMarshaler{"hog", t}
@@ -275,4 +275,17 @@ func FeatSize(pix image.Point, conf Config) image.Point {
 	// Remove one cell on all sides for output.
 	out := cells.Sub(image.Pt(2, 2))
 	return out
+}
+
+func MinInputSize(feat image.Point, conf Config) image.Point {
+	// One feature pixel on all sides.
+	feat = feat.Add(image.Pt(2, 2))
+	// Multiply by cell size to get pixels.
+	pix := feat.Mul(conf.CellSize)
+	// Add floor(half a cell) on all sides.
+	half := conf.CellSize / 2
+	pix = pix.Add(image.Pt(half, half).Mul(2))
+	// Leave one pixel to compute derivatives.
+	pix = pix.Add(image.Pt(1, 1).Mul(2))
+	return pix
 }

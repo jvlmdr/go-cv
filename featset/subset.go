@@ -28,8 +28,9 @@ func (phi *ChannelInterval) Apply(f *rimg64.Multi) (*rimg64.Multi, error) {
 	return g, nil
 }
 
-func (phi *ChannelInterval) Size(x image.Point) image.Point { return x }
-func (phi *ChannelInterval) Channels() int                  { return phi.B - phi.A }
+func (phi *ChannelInterval) Size(x image.Point) image.Point         { return x }
+func (phi *ChannelInterval) MinInputSize(x image.Point) image.Point { return x }
+func (phi *ChannelInterval) Channels() int                          { return phi.B - phi.A }
 
 func (phi *ChannelInterval) Marshaler() *RealMarshaler {
 	return &RealMarshaler{"channel-interval", phi}
@@ -56,8 +57,9 @@ func (phi *SelectChannels) Apply(f *rimg64.Multi) (*rimg64.Multi, error) {
 	return g, nil
 }
 
-func (phi *SelectChannels) Size(x image.Point) image.Point { return x }
-func (phi *SelectChannels) Channels() int                  { return len(phi.Set) }
+func (phi *SelectChannels) Size(x image.Point) image.Point         { return x }
+func (phi *SelectChannels) MinInputSize(x image.Point) image.Point { return x }
+func (phi *SelectChannels) Channels() int                          { return len(phi.Set) }
 
 func (phi *SelectChannels) Marshaler() *RealMarshaler {
 	return &RealMarshaler{"select-channels", phi}

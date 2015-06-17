@@ -22,6 +22,7 @@ func (m *ImageMarshaler) Transform() Image           { return m.Spec.Transform()
 
 func (m *ImageMarshaler) Apply(im image.Image) (*rimg64.Multi, error) { return m.Spec.Apply(im) }
 func (m *ImageMarshaler) Size(x image.Point) image.Point              { return m.Spec.Size(x) }
+func (m *ImageMarshaler) MinInputSize(x image.Point) image.Point      { return m.Spec.MinInputSize(x) }
 func (m *ImageMarshaler) Channels() int                               { return m.Spec.Channels() }
 
 func (m *ImageMarshaler) UnmarshalJSON(data []byte) error {
@@ -61,6 +62,7 @@ func (m *RealMarshaler) Transform() Real           { return m.Spec.Transform() }
 
 func (m *RealMarshaler) Apply(f *rimg64.Multi) (*rimg64.Multi, error) { return m.Spec.Apply(f) }
 func (m *RealMarshaler) Size(x image.Point) image.Point               { return m.Spec.Size(x) }
+func (m *RealMarshaler) MinInputSize(x image.Point) image.Point       { return m.Spec.MinInputSize(x) }
 func (m *RealMarshaler) Channels() int                                { return m.Spec.Channels() }
 
 func (m *RealMarshaler) UnmarshalJSON(data []byte) error {

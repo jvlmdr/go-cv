@@ -19,8 +19,9 @@ func (phi *Gray) Apply(im image.Image) (*rimg64.Multi, error) {
 	return toGray(im), nil
 }
 
-func (phi *Gray) Size(x image.Point) image.Point { return x }
-func (phi *Gray) Channels() int                  { return 1 }
+func (phi *Gray) Size(x image.Point) image.Point         { return x }
+func (phi *Gray) MinInputSize(x image.Point) image.Point { return x }
+func (phi *Gray) Channels() int                          { return 1 }
 
 func (phi *Gray) Marshaler() *ImageMarshaler {
 	return &ImageMarshaler{"gray", nil}
@@ -36,8 +37,9 @@ func (phi *RGB) Apply(im image.Image) (*rimg64.Multi, error) {
 	return rimg64.FromColor(im), nil
 }
 
-func (phi *RGB) Size(x image.Point) image.Point { return x }
-func (phi *RGB) Channels() int                  { return 3 }
+func (phi *RGB) Size(x image.Point) image.Point         { return x }
+func (phi *RGB) MinInputSize(x image.Point) image.Point { return x }
+func (phi *RGB) Channels() int                          { return 3 }
 
 func (phi *RGB) Marshaler() *ImageMarshaler {
 	return &ImageMarshaler{"rgb", nil}

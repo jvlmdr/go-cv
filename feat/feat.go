@@ -27,9 +27,10 @@ type Image interface {
 	Apply(image.Image) (*rimg64.Multi, error)
 	// Integer downsample rate.
 	Rate() int
-	// The size of the feature image
-	// computed from an input image.
-	Size(image.Point) image.Point
+	// The size of the feature image computed from an input image.
+	Size(im image.Point) (feat image.Point)
+	// Minimum image size to achieve feature image size.
+	MinInputSize(feat image.Point) (im image.Point)
 	// The number of channels.
 	Channels() int
 }
@@ -40,9 +41,10 @@ type Real interface {
 	Apply(*rimg64.Multi) (*rimg64.Multi, error)
 	// Integer downsample rate.
 	Rate() int
-	// The size of the feature image
-	// computed from an input image.
-	Size(image.Point) image.Point
+	// The size of the feature image computed from an input image.
+	Size(im image.Point) (feat image.Point)
+	// Minimum image size to achieve feature image size.
+	MinInputSize(feat image.Point) (im image.Point)
 	// The number of channels.
 	Channels() int
 }
